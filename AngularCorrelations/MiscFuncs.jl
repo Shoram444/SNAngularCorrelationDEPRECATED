@@ -321,4 +321,10 @@ function get_gs(θ, k, gs) # return the value of g corresponding to the θ and k
     return gs[r][c]
 end
 
+function get_gs_rel(θ, k, gs) # return the value of g corresponding to the θ and k
+    r = Int(floor(θ))+1
+    c = (k+length(gs[1])) - 179
+    return gs[r][c] ./ maximum(gs[r])
+end
+
 end #MODULE END

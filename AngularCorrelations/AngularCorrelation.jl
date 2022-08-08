@@ -606,7 +606,7 @@ savefig("FilterecCos30.png")
 
 midPoint1 = 0    # starting point for the angle cut ( θ = mid ± k*dθ)
 # midPoint2 = 180
-dθ = 1
+dθ = 2
 sign = "p"
 maxSteps = 180 #Int(midPoint / dθ)
 labels = []
@@ -618,7 +618,7 @@ ks = []
 gs_abs = []
 ks_abs = []
 
-for n in 1:180
+for n in 1:dθ:180
     @show cutEdges1 = get_cut_edges(n - 1, 1, dθ, sign)
     # cutEdges2 = get_cut_edges(midPoint2, n, dθ, sign)
     push!(labels, string(
@@ -763,25 +763,42 @@ for k in ks_abs
     append!(ksAllAbs, k)
 end
 
-heatmap(ks[1], gs[1])
-
-ks[1]
-gs[1]
-heatmap
-length(-179:1:179)
-
-
-gMat
-heatmap(gMat;transpose = false,)
-
-x =  -179:1:179
-y =   0:179
-z = zeros(180,359)
+yMax = Int(180/dθ - 1)
+x = -179:1:179
+y = 0:yMax
+z = zeros(180, 359)
 
 for c in eachindex(x)
     for r in eachindex(y)
-        z[r,c]= get_gs(y[r],x[c], gs)
+        z[r, c] = get_gs(y[r], x[c], gs)
     end
 end
 
-heatmap(x,y,z)
+heatmap(x, y, z; yticks = 0:15:180, xlabel ="k", ylabel="ϕ", legend =:right,colorbar_title="g(k, ϕ)" , dpi = 150)
+vline!([0], label = "")
+savefig("fig.png")
+
+
+function get_gs_rel(θ, k, gs) # return the value of g corresponding to the θ and k
+    r = Int(floor(θ))+1
+    c = (k+length(gs[1])) - 179
+    return gs[r][c] ./ maximum(gs[r])
+end
+
+z1 = zeros(90, 359)
+for c in eachindex(x)
+    for r in eachindex(y)
+        @show r,c 
+        @show y[r], x[c]
+        z1[r, c] = get_gs_rel(y[r], x[c], gs)
+    end
+end
+
+contour(x, y, z1; yticks = 0:15:180, xlabel ="k", ylabel="ϕ", legend =:right,colorbar_title="g(k, ϕ)" , dpi = 150)
+vline!([0], label = "")
+savefig("fig2.png")
+
+gs[1]
+
+ks
+gs
