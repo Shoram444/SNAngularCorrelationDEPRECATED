@@ -22,11 +22,13 @@ my_vibrant(;
 
 
 
-f = ROOTFile("./AngularCorrelations/AngularCorrelationAllEnergies96MilEvents.root");
+f = ROOTFile(
+    "/home/shoram/Work/PhD_Thesis/Job15/AngularCorrelations/AngularCorrelationAllEnergies96MilEvents.root",
+);
 tree = DataFrame(LazyTree(f, "tree", keys(f["tree"])));
 @transform! tree :ESum = :reconstructedEnergy2 + :reconstructedEnergy1;
 
-dEmitted = 1 # dθdif in degrees
+dEmitted = 5 # dθdif in degrees
 nBins    = Int(180 / dEmitted)
 minAngle = 0
 maxAngle = 180
@@ -76,11 +78,41 @@ df_stats = DataFrame(;
     mean = Real[],
     mode = Real[],
     median = Real[],
-    varianceData = Real[],
+    variance = Real[],
     escEfficiency = Real[],
 )
 
+for minThetaEmitted in minAngle:dEmitted:(maxAngle - dEmitted)  # for loop over emitted slices, the size of slize is determined by dEmitted 
+    maxThetaEmitted = minThetaEmitted + dEmitted
 
+    for minE in minEnergy:dEnergy:(maxEnergy - dEnergy)     # for loop over energy slices of the sum of energies 
+        maxE = minE + dEnergy
+
+        theta_esc = get_theta_esc_slice(minThetaEmitted, maxThetaEmitted, minE, maxE, tree)
+        hist = Hist1D(theta_esc, (minThetaEmitted:binWidth:maxThetaEmitted))
+        @show minThetaEmitted:binWidth:maxThetaEmitted
+        @show bincounts(hist)
+        @show argmax(bincounts(hist))
+        @show argmax(bincounts(hist)) * binWidth
+        # push!(
+        #     df_stats,
+        #     get_slice_stats(
+        #         minThetaEmitted,
+        #         maxThetaEmitted,
+        #         minE,
+        #         maxE,
+        #         tree,
+        #         binWidth,
+        #     ),
+        # )
+    end
+end
+
+df_stats
+
+
+###############################################################
+################# DRAW individual stats
 
 # anim = @animate for minThetaEmitted in minAngle:dEmitted:(maxAngle - dEmitted)
 for minThetaEmitted in minAngle:dEmitted:(maxAngle - dEmitted)  # for loop over emitted slices, the size of slize is determined by dEmitted 
@@ -105,42 +137,11 @@ for minThetaEmitted in minAngle:dEmitted:(maxAngle - dEmitted)  # for loop over 
             xlims  = (minAngle, maxAngle),
         )
 
-        warn_multiple_modes = "" # this is just a sanity check in case there are two modes
-
-        if (length(theta_esc) == 0)
-            meanData     = 0
-            medianData   = 0
-            varianceData = 0
-            modeData     = 0
-            escEffData   = 0
-        else  # this condition is used just so that when not enough statistics is present in the slice, it isn't able to calc stats
-            meanData     = round(mean(theta_esc); digits = 3)
-            medianData   = round(median(theta_esc); digits = 3)
-            varianceData = round(sqrt(var(theta_esc; corrected = :true)); digits = 3)
-            escEffData   = round(get_reco_efficiency(minThetaEmitted, maxThetaEmitted, theta_esc); digits = 3)
-
-            if (length(argmax(bincounts(hist))) == 1) # in case there are two modes
-                modeData = argmax(bincounts(hist)) * binWidth
-            else
-                warn_multiple_modes = "multiple MODES! " * length(argmax(bincounts(hist)))
-                @show warn_multiple_modes
-            end
-        end
-
-        push!(
-            df_stats,
-            [
-                minThetaEmitted,
-                maxThetaEmitted,
-                minE,
-                maxE,
-                meanData,
-                modeData,
-                medianData,
-                varianceData,
-                escEffData,
-            ],
-        )
+        stats = get_slice_stats(minThetaEmitted, maxThetaEmitted, minE, maxE, theta_esc; _binWidth = binWidth)
+        meanData = stats[5]
+        modeData = stats[6] 
+        medianData = stats[7] 
+        varianceData = stats[8]
 
         vline!([medianData]; c = :black, label = "median", lw = 2)
         vline!([modeData]; c = :green, label = "mode", lw = 2)
@@ -160,8 +161,6 @@ for minThetaEmitted in minAngle:dEmitted:(maxAngle - dEmitted)  # for loop over 
                     "\n",
                     L"\sqrt{\frac{1}{n-1}\sum^n{(x_i - \bar{x})^2}} = ",
                     varianceData,
-                    "\n",
-                    warn_multiple_modes,
                 ),
                 6,
             ),
@@ -179,15 +178,14 @@ for minThetaEmitted in minAngle:dEmitted:(maxAngle - dEmitted)  # for loop over 
             ".png",
         )
         outDir = string(
-            "AngularCorrelations/Figs_individual_Escapes/",
+            "/home/shoram/Work/PhD_Thesis/Job15/AngularCorrelations/Figs_individual_Escapes/",
             "dTheta_",
             dEmitted,
             "-nBins_",
             nBins,
             "_E-",
             minE,
-            "_",###############################################################
-            ################# DRAW simple stats
+            "_",
             maxE,
         )
 
@@ -204,23 +202,23 @@ end
 ################# DRAW simple stats
 
 plotMeans = [
-    df_stats[(df_stats.minE .== minE), 5] for
+    df_stats[(df_stats.minE .== minE), :mean] for
     minE in minEnergy:dEnergy:(maxEnergy - dEnergy)
 ] # creates a matrix of n rows, where each row represents the energy slice
 plotModes = [
-    df_stats[(df_stats.minE .== minE), 6] for
+    df_stats[(df_stats.minE .== minE), :mode] for
     minE in minEnergy:dEnergy:(maxEnergy - dEnergy)
 ]
 plotMedians = [
-    df_stats[(df_stats.minE .== minE), 7] for
+    df_stats[(df_stats.minE .== minE), :median] for
     minE in minEnergy:dEnergy:(maxEnergy - dEnergy)
 ]
 plotVars = [
-    df_stats[(df_stats.minE .== minE), 8] for
+    df_stats[(df_stats.minE .== minE), :varianceData] for
     minE in minEnergy:dEnergy:(maxEnergy - dEnergy)
 ]
 plotEffs = [
-    df_stats[(df_stats.minE .== minE), 9] for
+    df_stats[(df_stats.minE .== minE), :escEfficiency] for
     minE in minEnergy:dEnergy:(maxEnergy - dEnergy)
 ]
 
@@ -720,3 +718,4 @@ end
 p
 savefig(p, "energy_relative_abs.png")
 
+gd = groupby(tree, :)
