@@ -10,7 +10,9 @@ export y,
     get_k_factors,
     get_diagonal_sums_abs,
     get_k_factors_abs,
-    get_slice_stats
+    get_slice_stats,
+    get_cut_edges,
+    get_gs
 
 
 y(x) = x # generic linear line y = x 
@@ -291,5 +293,32 @@ function get_slice_stats(
     ]
 end
 
+function get_cut_edges(midPoint, multiple, dθ, sign)
+    l = midPoint - multiple * dθ
+    u = midPoint + multiple * dθ
+    if (l < 0)
+        l = 0
+    end
+    if (u > 180)
+        u = 180
+    end
+
+    if (sign == "pm")
+        return (l, u)
+    elseif (sign == "p")
+        return (midPoint, u)
+    elseif (sign == "m")
+        return (l, midPoint)
+    else
+        error("Must chose a valid sign from options: pm, m, p")
+        return 0
+    end
+end
+
+function get_gs(θ, k, gs) # return the value of g corresponding to the θ and k
+    r = Int(floor(θ))+1
+    c = (k+length(gs[1])) - 179
+    return gs[r][c]
+end
 
 end #MODULE END
