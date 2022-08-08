@@ -88,23 +88,17 @@ for minThetaEmitted in minAngle:dEmitted:(maxAngle - dEmitted)  # for loop over 
     for minE in minEnergy:dEnergy:(maxEnergy - dEnergy)     # for loop over energy slices of the sum of energies 
         maxE = minE + dEnergy
 
-        theta_esc = get_theta_esc_slice(minThetaEmitted, maxThetaEmitted, minE, maxE, tree)
-        hist = Hist1D(theta_esc, (minThetaEmitted:binWidth:maxThetaEmitted))
-        @show minThetaEmitted:binWidth:maxThetaEmitted
-        @show bincounts(hist)
-        @show argmax(bincounts(hist))
-        @show argmax(bincounts(hist)) * binWidth
-        # push!(
-        #     df_stats,
-        #     get_slice_stats(
-        #         minThetaEmitted,
-        #         maxThetaEmitted,
-        #         minE,
-        #         maxE,
-        #         tree,
-        #         binWidth,
-        #     ),
-        # )
+        push!(
+            df_stats,
+            get_slice_stats(
+                minThetaEmitted,
+                maxThetaEmitted,
+                minE,
+                maxE,
+                tree,
+                binWidth,
+            ),
+        )
     end
 end
 

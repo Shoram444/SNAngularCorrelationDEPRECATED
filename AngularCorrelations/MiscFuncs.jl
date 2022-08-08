@@ -230,7 +230,7 @@ function get_slice_stats(
     varianceData = 0
     escEffData = 0
 
-    hist = Hist1D(_theta_esc, (_θemiMin:_binWidth:_θemiMax)) # used to get mode from the binned histogram
+    hist = Hist1D(_theta_esc, (0:_binWidth:180)) # used to get mode from the binned histogram
 
     if (length(_theta_esc) > 0)
         meanData = mean(_theta_esc)
@@ -268,7 +268,7 @@ function get_slice_stats(
     escEffData = 0
 
     theta_esc = get_theta_esc_slice(_θemiMin, _θemiMax, _EMin, _EMax, _tree)
-    hist = Hist1D(theta_esc, (_θemiMin:_binWidth:_θemiMax)) # used to get mode from the binned histogram
+    hist = Hist1D(theta_esc, (0:_binWidth:180)) # used to get mode from the binned histogram
 
     if (length(theta_esc) > 0)
         meanData = mean(theta_esc)
