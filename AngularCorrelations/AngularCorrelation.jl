@@ -604,11 +604,11 @@ savefig("FilterecCos30.png")
 ###############################################################
 ################# DRAW gs
 
-midPoint1 = 0    # starting point for the angle cut ( θ = mid ± k*dθ)
-# midPoint2 = 180
-dθ = 2
+midPoint1 = 0   # starting point for the angle cut ( θ = mid ± k*dθ)
+# midPoint2 = 150
+dθ = 6
 sign = "p"
-maxSteps = 180 #Int(midPoint / dθ)
+maxSteps = 180 #Int(midPoint1 / dθ) 
 labels = []
 
 fh2ds = Array{Hist2D, 1}(undef, maxSteps)
@@ -618,9 +618,16 @@ ks = []
 gs_abs = []
 ks_abs = []
 
-for n in 1:dθ:180
+@time for n in 1:dθ:maxSteps
     @show cutEdges1 = get_cut_edges(n - 1, 1, dθ, sign)
     # cutEdges2 = get_cut_edges(midPoint2, n, dθ, sign)
+
+    sdf = @chain tree begin  # filter out the dataframe
+        @subset((cutEdges1[1] .<= :thetaEscaped .<= cutEdges1[2]))#.| 
+        # (cutEdges2[1] .<= :thetaEscaped .<= cutEdges2[2]),)
+        @select(:thetaEscaped, :thetaEmitted)
+    end
+
     push!(labels, string(
         "θ ∈ (",
         cutEdges1[1],
@@ -635,170 +642,120 @@ for n in 1:dθ:180
     ))
 
     fh2ds[n] = Hist2D(
-        (
-            tree[
-                (cutEdges1[1] .<= tree.thetaEscaped .<= cutEdges1[2]),
-                # .| 
-                # (cutEdges2[1] .<= tree.thetaEscaped .<= cutEdges2[2])
-                # ,
-                :,
-            ].thetaEmitted,
-            tree[
-                (cutEdges1[1] .<= tree.thetaEscaped .<= cutEdges1[2]),
-                # .| 
-                # (cutEdges2[1] .<= tree.thetaEscaped .<= cutEdges2[2])
-                # ,
-                :,
-            ].thetaEscaped,
-        ),
+        (sdf[!, :thetaEmitted], sdf[!, :thetaEscaped]),
         (minAngle:dEmitted:maxAngle, minAngle:dEmitted:maxAngle),
     )
 
     push!(gs, get_diagonal_sums(fh2ds[n]))
     push!(ks, get_k_factors(fh2ds[n]))
-
     push!(gs_abs, get_diagonal_sums_abs(fh2ds[n]))
     push!(ks_abs, get_k_factors_abs(fh2ds[n]))
 end
 
-plot(
-    ks,
-    gs;
-    label = reshape(labels, 1, length(labels)),
-    palette = :matter,
-    # c = reshape(colors, 1, length(colors)),
-    xlims = (-179, 179),
-    xlabel = "k-factor",
-    ylabel = "g(k)",
-    title = "Sum over diagonals of the f(θ,ϕ) function ",
-    legend = :topright,
-    size = (3600, 2600),
-    dpi = 100,
-    lw = 10,
-    alpha = 0.4,
-)
+# plot(
+#     ks,
+#     gs;
+#     label = reshape(labels, 1, length(labels)),
+#     palette = :matter,
+#     # c = reshape(colors, 1, length(colors)),
+#     xlims = (-179, 179),
+#     xlabel = "k-factor",
+#     ylabel = "g(k)",
+#     title = "Sum over diagonals of the f(θ,ϕ) function ",
+#     legend = :topright,
+#     size = (3600, 2600),
+#     dpi = 100,
+#     lw = 10,
+#     alpha = 0.4,
+# )
 
-t = string(midPoint1)#, "_and_", midPoint2)
+# t = string(midPoint1)#, "_and_", midPoint2)
 
-savefig(
-    string(
-        "/home/shoram/Work/PhD_Thesis/Job15/AngularCorrelations/LargeStats/gs/gs_angle",
-        t,
-        "_p1.png",
-    ),
-)
-
-
-
-p1 = plot()
-for i in 1:length(ks_abs)
-    plot!(
-        ks_abs[i],
-        gs_abs[i] / maximum(gs_abs[i]);
-        label = labels[i],
-        c = palette(:matter)[i],
-        # c = colors[i],
-        # seriestype = :steppre,
-        xlims = (0, 179),
-        xlabel = "|k-factor|",
-        ylabel = "g(k)",
-        title = "Sum over diagonals of the f(θ,ϕ) function ",
-        legend = :topright,
-        size = (3600, 2400),
-        dpi = 400,
-        lw = 3,
-        alpha = 0.4,
-    )
-end
-p2 = scatter(
-    [0, 0],
-    [0, 1],
-    zcolor = [0, 180],
-    clims = (0, 180),
-    xlims = (1, 1.1),
-    # xshowaxis = false,
-    # yshowaxis = false,
-    framestyle = :none,
-    label = "",
-    c = :matter,
-    grid = false,
-)
-l = @layout [a b{0.01w}]
-p = plot(p1, p2, layout = l, size = (3600, 2400), dpi = 100)
-savefig(
-    p,
-    string(
-        "/home/shoram/Work/PhD_Thesis/Job15/AngularCorrelations/LargeStats/gs/gs_ABS_angle_",
-        t,
-        "_p1.png",
-    ),
-)
+# savefig(
+#     string(
+#         "/home/shoram/Work/PhD_Thesis/Job15/AngularCorrelations/LargeStats/gs/gs_angle",
+#         t,
+#         "_p1.png",
+#     ),
+# )
 
 
 
-gsAll = []
-gsAllRel = []
-gsAllAbs = []
-gsAllAbsRel = []
-ksAll = []
-ksAllAbs = []
-for g in gs
-    append!(gsAll, g)
-end
-for g in gs
-    g = g ./ maximum(g)
-    append!(gsAllRel, g)
-end
-for k in ks
-    append!(ksAll, k)
-end
-for g in gs_abs
-    append!(gsAllAbs, g)
-end
-for g in gs_abs
-    g = g ./ maximum(g)
-    append!(gsAllAbsRel, g)
-end
-for k in ks_abs
-    append!(ksAllAbs, k)
-end
+# p1 = plot()
+# for i in 1:length(ks_abs)
+#     plot!(
+#         ks_abs[i],
+#         gs_abs[i] / maximum(gs_abs[i]);
+#         label = labels[i],
+#         c = palette(:matter)[i],
+#         # c = colors[i],
+#         # seriestype = :steppre,
+#         xlims = (0, 179),
+#         xlabel = "|k-factor|",
+#         ylabel = "g(k)",
+#         title = "Sum over diagonals of the f(θ,ϕ) function ",
+#         legend = :topright,
+#         size = (3600, 2400),
+#         dpi = 400,
+#         lw = 3,
+#         alpha = 0.4,
+#     )
+# end
+# p2 = scatter(
+#     [0, 0],
+#     [0, 1],
+#     zcolor = [0, 180],
+#     clims = (0, 180),
+#     xlims = (1, 1.1),
+#     # xshowaxis = false,
+#     # yshowaxis = false,
+#     framestyle = :none,
+#     label = "",
+#     c = :matter,
+#     grid = false,
+# )
+# l = @layout [a b{0.01w}]
+# p = plot(p1, p2, layout = l, size = (3600, 2400), dpi = 100)
+# savefig(
+#     p,
+#     string(
+#         "/home/shoram/Work/PhD_Thesis/Job15/AngularCorrelations/LargeStats/gs/gs_ABS_angle_",
+#         t,
+#         "_p1.png",
+#     ),
+# )
 
-yMax = Int(180/dθ - 1)
+
+
+yMax = Int(180 / dθ - 1)
 x = -179:1:179
 y = 0:yMax
-z = zeros(180, 359)
 
+z1 = zeros(length(y), 359)
 for c in eachindex(x)
     for r in eachindex(y)
-        z[r, c] = get_gs(y[r], x[c], gs)
-    end
-end
-
-heatmap(x, y, z; yticks = 0:15:180, xlabel ="k", ylabel="ϕ", legend =:right,colorbar_title="g(k, ϕ)" , dpi = 150)
-vline!([0], label = "")
-savefig("fig.png")
-
-
-function get_gs_rel(θ, k, gs) # return the value of g corresponding to the θ and k
-    r = Int(floor(θ))+1
-    c = (k+length(gs[1])) - 179
-    return gs[r][c] ./ maximum(gs[r])
-end
-
-z1 = zeros(90, 359)
-for c in eachindex(x)
-    for r in eachindex(y)
-        @show r,c 
-        @show y[r], x[c]
         z1[r, c] = get_gs_rel(y[r], x[c], gs)
     end
 end
 
-contour(x, y, z1; yticks = 0:15:180, xlabel ="k", ylabel="ϕ", legend =:right,colorbar_title="g(k, ϕ)" , dpi = 150)
-vline!([0], label = "")
-savefig("fig2.png")
+contour(
+    x,
+    y .* dθ,
+    z1;
+    ylims = (0,180),
+    yticks = 0:15:180,
+    xlabel = "k",
+    ylabel = "ϕ",
+    legend = :right,
+    colorbar_title = "g(k, ϕ)",
+    dpi = 150,
+)
+vline!([0], label = "", c = :black, l2 = 4)
+savefig(
+    string(
+        "/home/shoram/Work/PhD_Thesis/Job15/AngularCorrelations/LargeStats/gs/contour_",
+        dθ,
+        "deg.png",
+    ),
+)
 
-gs[1]
-
-ks
-gs
