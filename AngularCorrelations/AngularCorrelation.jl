@@ -22,7 +22,9 @@ my_vibrant(;
 
 
 
-f = ROOTFile("./AngularCorrelations/AngularCorrelationAllEnergies96MilEvents.root");
+f = ROOTFile(
+    "/home/shoram/Work/PhD_Thesis/Job15/AngularCorrelations/AngularCorrelationAllEnergies96MilEvents.root",
+);
 tree = DataFrame(LazyTree(f, "tree", keys(f["tree"])));
 @transform! tree :ESum = :reconstructedEnergy2 + :reconstructedEnergy1;
 
@@ -76,11 +78,28 @@ df_stats = DataFrame(;
     mean = Real[],
     mode = Real[],
     median = Real[],
-    varianceData = Real[],
+    variance = Real[],
     escEfficiency = Real[],
 )
 
+for minThetaEmitted in minAngle:dEmitted:(maxAngle - dEmitted)  # for loop over emitted slices, the size of slize is determined by dEmitted 
+    maxThetaEmitted = minThetaEmitted + dEmitted
 
+    for minE in minEnergy:dEnergy:(maxEnergy - dEnergy)     # for loop over energy slices of the sum of energies 
+        maxE = minE + dEnergy
+
+        push!(
+            df_stats,
+            get_slice_stats(minThetaEmitted, maxThetaEmitted, minE, maxE, tree, binWidth),
+        )
+    end
+end
+
+df_stats
+
+
+###############################################################
+################# DRAW individual stats
 
 # anim = @animate for minThetaEmitted in minAngle:dEmitted:(maxAngle - dEmitted)
 for minThetaEmitted in minAngle:dEmitted:(maxAngle - dEmitted)  # for loop over emitted slices, the size of slize is determined by dEmitted 
@@ -105,42 +124,18 @@ for minThetaEmitted in minAngle:dEmitted:(maxAngle - dEmitted)  # for loop over 
             xlims  = (minAngle, maxAngle),
         )
 
-        warn_multiple_modes = "" # this is just a sanity check in case there are two modes
-
-        if (length(theta_esc) == 0)
-            meanData     = 0
-            medianData   = 0
-            varianceData = 0
-            modeData     = 0
-            escEffData   = 0
-        else  # this condition is used just so that when not enough statistics is present in the slice, it isn't able to calc stats
-            meanData     = round(mean(theta_esc); digits = 3)
-            medianData   = round(median(theta_esc); digits = 3)
-            varianceData = round(sqrt(var(theta_esc; corrected = :true)); digits = 3)
-            escEffData   = round(get_reco_efficiency(minThetaEmitted, maxThetaEmitted, theta_esc); digits = 3)
-
-            if (length(argmax(bincounts(hist))) == 1) # in case there are two modes
-                modeData = argmax(bincounts(hist)) * binWidth
-            else
-                warn_multiple_modes = "multiple MODES! " * length(argmax(bincounts(hist)))
-                @show warn_multiple_modes
-            end
-        end
-
-        push!(
-            df_stats,
-            [
-                minThetaEmitted,
-                maxThetaEmitted,
-                minE,
-                maxE,
-                meanData,
-                modeData,
-                medianData,
-                varianceData,
-                escEffData,
-            ],
+        stats = get_slice_stats(
+            minThetaEmitted,
+            maxThetaEmitted,
+            minE,
+            maxE,
+            theta_esc;
+            _binWidth = binWidth,
         )
+        meanData = stats[5]
+        modeData = stats[6]
+        medianData = stats[7]
+        varianceData = stats[8]
 
         vline!([medianData]; c = :black, label = "median", lw = 2)
         vline!([modeData]; c = :green, label = "mode", lw = 2)
@@ -160,8 +155,6 @@ for minThetaEmitted in minAngle:dEmitted:(maxAngle - dEmitted)  # for loop over 
                     "\n",
                     L"\sqrt{\frac{1}{n-1}\sum^n{(x_i - \bar{x})^2}} = ",
                     varianceData,
-                    "\n",
-                    warn_multiple_modes,
                 ),
                 6,
             ),
@@ -179,15 +172,14 @@ for minThetaEmitted in minAngle:dEmitted:(maxAngle - dEmitted)  # for loop over 
             ".png",
         )
         outDir = string(
-            "AngularCorrelations/Figs_individual_Escapes/",
+            "/home/shoram/Work/PhD_Thesis/Job15/AngularCorrelations/Figs_individual_Escapes/",
             "dTheta_",
             dEmitted,
             "-nBins_",
             nBins,
             "_E-",
             minE,
-            "_",###############################################################
-            ################# DRAW simple stats
+            "_",
             maxE,
         )
 
@@ -204,23 +196,23 @@ end
 ################# DRAW simple stats
 
 plotMeans = [
-    df_stats[(df_stats.minE .== minE), 5] for
+    df_stats[(df_stats.minE .== minE), :mean] for
     minE in minEnergy:dEnergy:(maxEnergy - dEnergy)
 ] # creates a matrix of n rows, where each row represents the energy slice
 plotModes = [
-    df_stats[(df_stats.minE .== minE), 6] for
+    df_stats[(df_stats.minE .== minE), :mode] for
     minE in minEnergy:dEnergy:(maxEnergy - dEnergy)
 ]
 plotMedians = [
-    df_stats[(df_stats.minE .== minE), 7] for
+    df_stats[(df_stats.minE .== minE), :median] for
     minE in minEnergy:dEnergy:(maxEnergy - dEnergy)
 ]
 plotVars = [
-    df_stats[(df_stats.minE .== minE), 8] for
+    df_stats[(df_stats.minE .== minE), :variance] for
     minE in minEnergy:dEnergy:(maxEnergy - dEnergy)
 ]
 plotEffs = [
-    df_stats[(df_stats.minE .== minE), 9] for
+    df_stats[(df_stats.minE .== minE), :escEfficiency] for
     minE in minEnergy:dEnergy:(maxEnergy - dEnergy)
 ]
 
@@ -237,7 +229,7 @@ l = @layout [
 mean1 = scatter(
     minAngle:dEmitted:(maxAngle - dEmitted),
     plotMeans;
-    label  = reshape(labels, 1, length(plotMeans)),  # labels must be in matrix form -> hence reshape
+    label  = reshape(labelsEnergy, 1, length(labelsEnergy)),  # labels must be in matrix form -> hence reshape
     lims   = (minAngle, maxAngle),
     ylabel = L"\theta_{escaped}",
     title  = L"\mathrm{means~vs~energy}",
@@ -611,112 +603,159 @@ savefig("FilterecCos30.png")
 
 ###############################################################
 ################# DRAW gs
-dEscaped = 10
 
-# labels = [string("θesc ∈ (", 90 - minThetaEmitted, ", ", minThetaEmitted + 90, " )")
-#           for
-#           minThetaEmitted in 10:dEscaped:90]
+midPoint1 = 0   # starting point for the angle cut ( θ = mid ± k*dθ)
+# midPoint2 = 150
+dθ = 6
+sign = "p"
+maxSteps = 180 #Int(midPoint1 / dθ) 
+labels = []
 
-labels = [
-    string("E ∈ (", minE, ", ", minE + dEnergy, " )") for
-    minE in minEnergy:dEnergy:(maxEnergy + dEnergy)
-]
-
-
-fh2ds = Array{Hist2D, 1}(undef, length(labels))
+fh2ds = Array{Hist2D, 1}(undef, maxSteps)
 gs = []
 ks = []
 
 gs_abs = []
 ks_abs = []
 
+@time for n in 1:dθ:maxSteps
+    @show cutEdges1 = get_cut_edges(n - 1, 1, dθ, sign)
+    # cutEdges2 = get_cut_edges(midPoint2, n, dθ, sign)
 
-# for (i, minThetaEmitted) in enumerate(10:dEscaped:90)
-#     maxThetaEmitted = minThetaEmitted + dEscaped
-#     fh2ds[i] = Hist2D((tree[(90 - minThetaEmitted) .<= tree.thetaEscaped .<= (minThetaEmitted + 90),
-#                             :].thetaEmitted,
-#                        tree[(90 - minThetaEmitted) .<= tree.thetaEscaped .<= (minThetaEmitted + 90),
-#                             :].thetaEscaped),
-#                       (minAngle:dEmitted:maxAngle, minAngle:dEmitted:maxAngle))
+    sdf = @chain tree begin  # filter out the dataframe
+        @subset((cutEdges1[1] .<= :thetaEscaped .<= cutEdges1[2]))#.| 
+        # (cutEdges2[1] .<= :thetaEscaped .<= cutEdges2[2]),)
+        @select(:thetaEscaped, :thetaEmitted)
+    end
 
-for (i, minE) in enumerate(minEnergy:dEnergy:(maxEnergy - dEnergy))
-    maxE = minE + dEnergy
-    fh2ds[i] = Hist2D(
-        (
-            tree[minE .<= tree.ESum .<= maxE, :].thetaEmitted,
-            tree[minE .<= tree.ESum .<= maxE, :].thetaEscaped,
-        ),
+    push!(labels, string(
+        "θ ∈ (",
+        cutEdges1[1],
+        ", ",
+        cutEdges1[2],
+        " )",
+        # " + (",
+        # cutEdges2[1],
+        # ", ",
+        # cutEdges2[2],
+        # " )",
+    ))
+
+    fh2ds[n] = Hist2D(
+        (sdf[!, :thetaEmitted], sdf[!, :thetaEscaped]),
         (minAngle:dEmitted:maxAngle, minAngle:dEmitted:maxAngle),
     )
 
-    push!(gs, get_diagonal_sums(fh2ds[i]))
-    push!(ks, get_k_factors(fh2ds[i]))
-
-    push!(gs_abs, get_diagonal_sums_abs(fh2ds[i]))
-    push!(ks_abs, get_k_factors_abs(fh2ds[i]))
+    push!(gs, get_diagonal_sums(fh2ds[n]))
+    push!(ks, get_k_factors(fh2ds[n]))
+    push!(gs_abs, get_diagonal_sums_abs(fh2ds[n]))
+    push!(ks_abs, get_k_factors_abs(fh2ds[n]))
 end
 
+# plot(
+#     ks,
+#     gs;
+#     label = reshape(labels, 1, length(labels)),
+#     palette = :matter,
+#     # c = reshape(colors, 1, length(colors)),
+#     xlims = (-179, 179),
+#     xlabel = "k-factor",
+#     ylabel = "g(k)",
+#     title = "Sum over diagonals of the f(θ,ϕ) function ",
+#     legend = :topright,
+#     size = (3600, 2600),
+#     dpi = 100,
+#     lw = 10,
+#     alpha = 0.4,
+# )
 
-plot(
-    ks,
-    gs;
-    label = reshape(labels, 1, length(labels)),
-    seriestype = :steppre,
-    c = reshape(colors, 1, length(colors)),
-    xlims = (-179, 179),
-    xlabel = "k-factor",
-    ylabel = "g(k)",
-    title = "Sum over diagonals of the f(θ,ϕ) function ",
-    legend = :topright,
+# t = string(midPoint1)#, "_and_", midPoint2)
+
+# savefig(
+#     string(
+#         "/home/shoram/Work/PhD_Thesis/Job15/AngularCorrelations/LargeStats/gs/gs_angle",
+#         t,
+#         "_p1.png",
+#     ),
+# )
+
+
+
+# p1 = plot()
+# for i in 1:length(ks_abs)
+#     plot!(
+#         ks_abs[i],
+#         gs_abs[i] / maximum(gs_abs[i]);
+#         label = labels[i],
+#         c = palette(:matter)[i],
+#         # c = colors[i],
+#         # seriestype = :steppre,
+#         xlims = (0, 179),
+#         xlabel = "|k-factor|",
+#         ylabel = "g(k)",
+#         title = "Sum over diagonals of the f(θ,ϕ) function ",
+#         legend = :topright,
+#         size = (3600, 2400),
+#         dpi = 400,
+#         lw = 3,
+#         alpha = 0.4,
+#     )
+# end
+# p2 = scatter(
+#     [0, 0],
+#     [0, 1],
+#     zcolor = [0, 180],
+#     clims = (0, 180),
+#     xlims = (1, 1.1),
+#     # xshowaxis = false,
+#     # yshowaxis = false,
+#     framestyle = :none,
+#     label = "",
+#     c = :matter,
+#     grid = false,
+# )
+# l = @layout [a b{0.01w}]
+# p = plot(p1, p2, layout = l, size = (3600, 2400), dpi = 100)
+# savefig(
+#     p,
+#     string(
+#         "/home/shoram/Work/PhD_Thesis/Job15/AngularCorrelations/LargeStats/gs/gs_ABS_angle_",
+#         t,
+#         "_p1.png",
+#     ),
+# )
+
+
+
+yMax = Int(180 / dθ - 1)
+x = -179:1:179
+y = 0:yMax
+
+z1 = zeros(length(y), 359)
+for c in eachindex(x)
+    for r in eachindex(y)
+        z1[r, c] = get_gs_rel(y[r], x[c], gs)
+    end
+end
+
+contour(
+    x,
+    y .* dθ,
+    z1;
+    ylims = (0,180),
+    yticks = 0:15:180,
+    xlabel = "k",
+    ylabel = "ϕ",
+    legend = :right,
+    colorbar_title = "g(k, ϕ)",
+    dpi = 150,
 )
-savefig("AngularCorrelations/LargeStats/gs_of_k_Energy.png")
-
-for (i, emin) in enumerate(minEnergy:dEnergy:(maxEnergy - dEnergy))
-    emax = emin + dEnergy
-    plot(
-        ks[i],
-        gs[i];
-        label = labels[i],
-        c = colors[i],
-        seriestype = :steppre,
-        xlims = (-179, 179),
-        xlabel = "k-factor",
-        ylabel = "g(k)",
-        title = "Sum over diagonals of the f(θ,ϕ) function ",
-        legend = :topright,
-    )
-
-    savefig(string("AngularCorrelations/LargeStats/gs/g(x)_E", emin, "-", emax, ".png"))
-end
-
-###############################################################
-
-h2ds = Hist2D(
-    (
-        tree[0 .<= tree.thetaEscaped .<= 180, :].thetaEmitted,
-        tree[0 .<= tree.thetaEscaped .<= 180, :].thetaEscaped,
+vline!([0], label = "", c = :black, l2 = 4)
+savefig(
+    string(
+        "/home/shoram/Work/PhD_Thesis/Job15/AngularCorrelations/LargeStats/gs/contour_",
+        dθ,
+        "deg.png",
     ),
-    (minAngle:dEmitted:maxAngle, minAngle:dEmitted:maxAngle),
 )
-
-minAngle:dEmitted:maxAngle
-
-
-p = plot()
-for i in 1:eachindex(ks_abs)
-    plot!(
-        ks_abs[i],
-        gs_abs[i] / maximum(gs_abs[i]);
-        label = labels[i],
-        c = colors[i],
-        seriestype = :steppre,
-        xlims = (-179, 179),
-        xlabel = "k-factor",
-        ylabel = "g(k)",
-        title = "Sum over diagonals of the f(θ,ϕ) function ",
-        legend = :topright,
-    )
-end
-p
-savefig(p, "energy_relative_abs.png")
 
