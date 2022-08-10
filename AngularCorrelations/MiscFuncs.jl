@@ -12,7 +12,10 @@ export y,
     get_k_factors_abs,
     get_slice_stats,
     get_cut_edges,
-    get_gs
+    get_gs,
+    get_gs_rel,
+    get_diagonal_sums_cdf
+
 
 
 y(x) = x # generic linear line y = x 
@@ -184,6 +187,24 @@ function get_diagonal_sums_abs(h2d)
             sums[Int(abs(i - j) + 1)] += mat[i, j]
         end
     end
+    return sums
+end
+
+function get_diagonal_sums_cdf(h2d)
+    mat = bincounts(h2d)      # get the matrix of bin counts of the 2d histogram
+    m = size(mat)[1]        # get the number of rows/cols of mxm matrix
+    ndiagonals = 2 * (m) - 1       # there are 2m-1 diagonals in a mxm matrix
+    sums = zeros(ndiagonals)   # initialize the array of sums of the diagonal elements
+
+    for r in 1:m           # loop over rows r
+        for c in 1:m       # loop over columns c
+            sums[m - (r - c)] += mat[r, c]
+        end
+    end
+
+    integral = sum(sums) # get the total sum of the array
+    sums = cumsum(sums) ./ integral # get cumulative sum and normalize to the integral
+
     return sums
 end
 
