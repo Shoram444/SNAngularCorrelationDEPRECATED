@@ -183,7 +183,7 @@ gk1 = plot(ks1 .* dθ, gs1, legend=:topright, xlims=(-179, 179), xlabel="k-facto
 
 
 
-### Applying various data cuts, we can observe how ``g(k)`` behaves. For example, if we apply an energy cut for the sum of electron energies, ie. ``$E \in (3000, 3500)keV$ `` we get...
+### Applying various data cuts, we can observe how ``g(k)`` behaves. For example, if we apply an energy cut for the sum of electron energies, ie. $E \in (3000, 3500)keV$ `` we get...
 
 
 ```julia
@@ -240,7 +240,7 @@ plot!(gk1, ks2  .* dθ, gs2, legend=:topright, xlims=(-179, 179), xlabel="k-fact
 
 
 
-### The first thing to notice is the reduced statistics. (For obvious reasons.) The more interesting however, is to look at the dispersion around the k = 0 line. Ideally, the statistics would be sacrified for the improved reconstruction precision -> narrower g(k). This we can better view by looking at ``$g_1(k), g_2(k)$`` normalized by their maximum.  
+### The first thing to notice is the reduced statistics. (For obvious reasons.) The more interesting however, is to look at the dispersion around the k = 0 line. Ideally, the statistics would be sacrified for the improved reconstruction precision -> narrower g(k). This we can better view by looking at $g_1(k), g_2(k)$ normalized by their maximum.  
 
 
 ```julia
@@ -261,7 +261,7 @@ plot!(ks2 .* dθ, gs2 ./ gMax2, legend=:topright, xlims=(-179, 179), xlabel="k-f
 
 ### We can see that while applying an energy cut on the data results in decreased statistics, it did provide for a better reconstruction precision. We thus have a tool for comparing the effects of data cuts on the data.
 
-### Next we look more in detail at the individual ``$\phi$`` slices. We first slice up ``f(ϕ, θ)`` horizontally in slices of ``$d\phi$ = 1 \deg``. We look at the ``g(k)``s of the individual slices.  
+### Next we look more in detail at the individual $\phi$ slices. We first slice up ``f(ϕ, θ)`` horizontally in slices of $d\phi$ = 1 \deg``. We look at the ``g(k)``s of the individual slices.  
 
 
 ```julia
@@ -352,7 +352,7 @@ plot(ks,gs)
 
 
 
-### Not much to see in this example. So many lines are difficult to decipher. However, if one were to look at the individual ``$d\phi$`` cuts as a new dimension, we can look at the graph in the plane of ``$(k, d\phi)$`` with z-direction being the value of ``$g(k, d\phi)$``. 
+### Not much to see in this example. So many lines are difficult to decipher. However, if one were to look at the individual $d\phi$ cuts as a new dimension, we can look at the graph in the plane of $(k, d\phi)$ with z-direction being the value of $g(k, d\phi)$. 
 
 
 ```julia
