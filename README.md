@@ -261,7 +261,7 @@ plot!(ks2 .* dθ, gs2 ./ gMax2, legend=:topright, xlims=(-179, 179), xlabel="k-f
 
 ### We can see that while applying an energy cut on the data results in decreased statistics, it did provide for a better reconstruction precision. We thus have a tool for comparing the effects of data cuts on the data.
 
-### Next we look more in detail at the individual $\phi$ slices. We first slice up ``f(ϕ, θ)`` horizontally in slices of $d\phi$ = 1 \deg``. We look at the ``g(k)``s of the individual slices.  
+### Next we look more in detail at the individual $\phi$ slices. We first slice up ``f(ϕ, θ)`` horizontally in slices of $d\phi$ = 1 \deg$. We look at the ``g(k)``s of the individual slices.  
 
 
 ```julia
