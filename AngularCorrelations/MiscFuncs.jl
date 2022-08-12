@@ -14,7 +14,9 @@ export y,
     get_cut_edges,
     get_gs,
     get_gs_rel,
-    get_diagonal_sums_cdf
+    get_diagonal_sums_cdf,
+    shift_angle,
+    get_gs_mean
 
 
 
@@ -170,7 +172,7 @@ function get_diagonal_sums(h2d)
 
     for r in 1:m           # loop over rows r
         for c in 1:m       # loop over columns c
-            sums[m - (r - c)] += mat[r, c]
+            sums[m - (c - r)] += mat[r, c]
         end
     end
     return sums
@@ -198,7 +200,7 @@ function get_diagonal_sums_cdf(h2d)
 
     for r in 1:m           # loop over rows r
         for c in 1:m       # loop over columns c
-            sums[m - (r - c)] += mat[r, c]
+            sums[m - (c - r)] += mat[r, c]
         end
     end
 
@@ -221,12 +223,12 @@ Input arguments are:
   - Hist2D object from FHist.jl
 """
 function get_k_factors(h2d)
-    mat = bincounts(h2d)      # get the matrix of bin counts of the 2d histogram
-    m = size(mat)[1]        # get the number of rows/cols of mxm matrix
-    ks = zeros(2 * (m) - 1)      # initialize array of k-factors
+    mat = bincounts(h2d)        # get the matrix of bin counts of the 2d histogram
+    m = size(mat)[1]            # get the number of rows/cols of mxm matrix
+    ks = zeros(2m - 1)     # initialize array of k-factors
 
     for d in 1:(2m - 1)            # loop over the diagnoal index in sums
-        k = m - d
+        k = d - m 
         ks[d] = k
     end
     return ks
@@ -338,7 +340,7 @@ end
 
 function get_gs(θ, k, gs) # return the value of g corresponding to the θ and k
     r = Int(floor(θ))+1
-    c = (k+length(gs[1])) - 179
+    c = Int(size(gs)[1] - floor(k)) 
     return gs[r][c]
 end
 
@@ -346,6 +348,21 @@ function get_gs_rel(θ, k, gs) # return the value of g corresponding to the θ a
     r = Int(floor(θ))+1
     c = (k+length(gs[1])) - 179
     return gs[r][c] ./ maximum(gs[r])
+end
+
+function shift_angle(angle, shifter)
+    dϕ = 180/length(shifter)
+    shiftIndex = Int(floor(angle/dϕ) +1 ) < 180/dϕ ? Int(floor(angle/dϕ) +1 ) : Int(180/dϕ) 
+    newAngle = angle - shifter[shiftIndex]
+end
+
+function get_gs_mean(gsVector, ksVector)
+    N = sum(gsVector)
+    ss = 0.0
+    for i in eachindex(gsVector)
+        ss += gsVector[i] * ksVector[i]
+    end
+    return ss/N
 end
 
 end #MODULE END

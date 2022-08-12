@@ -72,7 +72,7 @@ end
 ###############################################################
 ################# DRAW gs
 
-dθ = 10
+dθ = 1
 sign = "p"
 maxSteps = Int(180 / dθ)
 labels = []
@@ -126,7 +126,7 @@ for c in eachindex(x)
     end
 end
 
-contourStep = 0.2
+contourStep = 0.1
 z1 = map(x -> abs(2 * (0.5 - x)), z) # transform cdf to have maximum at 0.5 and move symetrically to the sides
 
 c = plot(
@@ -152,3 +152,16 @@ savefig(
         "deg.svg",
     ),
 )
+
+
+halfPoints = map( x -> abs.(0.5 .- x), gs_cdf ) # move each point by 0.5 and take abs. 
+                                                # This leads to array between 0 and 0.5. 
+                                                # Where number closest to 0 represents the 50% statistics.
+halfPoints = -179 .+ argmin.(halfPoints[:])     # To find the x position of the 50% stats, shift by 179
+
+
+modTree = @chain tree begin
+    @select(:thetaEmitted, :thetaEscaped, :ESum)
+    @rtransform :thetaEscapedModified = shift_angle( :thetaEscaped, halfPoints )
+    @subset( 0 .<= :thetaEscapedModified .<= 180)
+end
