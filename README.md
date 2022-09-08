@@ -1,6 +1,6 @@
-# SNAngularCorrelation
 ```julia
-using StatsPlots, UnROOT, StatsBase, CategoricalArrays
+using Revise
+using StatsPlots, UnROOT, StatsBase, CategoricalArrays, Polynomials, LinearAlgebra
 using FHist, LaTeXStrings, MPThemes, DataFrames, DataFramesMeta, Distributions
 ```
 
@@ -111,7 +111,7 @@ fh2d = Hist2D(                                           # h2d object similar to
 (minAngle:dEmitted:maxAngle, minAngle:dEmitted:maxAngle), 
 ) 
 
-h2d = histogram2d(
+h2d1 = histogram2d(
     tree.thetaEmitted,
     tree.thetaEscaped;
     nbins        = (nBins, nBins),
@@ -129,14 +129,14 @@ h2d = histogram2d(
 
 
     
-![svg](MarkDown/output_13_0.svg)
+![svg](Markdown/output_13_0.svg)
     
 
 
 
 
 ```julia
-savefig(h2d, joinpath(baseDir, string("h2d.png")))
+savefig(h2d1, joinpath(baseDir, string("h2d.png")))
 ```
 
 ### We define a line: ``ϕ - θ - k = 0`` with factor ``k`` which representing a diagonal line of ``f(ϕ, θ)``. Where:
@@ -147,8 +147,8 @@ savefig(h2d, joinpath(baseDir, string("h2d.png")))
 
 
 ```julia
-plot!(xPts, xPts, label = "k = 0", lw = 5)
 plot!(xPts, xPts .+ 30, label = "k = +30", lw = 5)
+plot!(xPts, xPts, label = "k = 0", lw = 5)
 plot!(xPts, xPts .- 30, label = "k = -30", lw = 5)
 ```
 
@@ -156,7 +156,7 @@ plot!(xPts, xPts .- 30, label = "k = -30", lw = 5)
 
 
     
-![svg](MarkDown/output_16_0.svg)
+![svg](Markdown/output_16_0.svg)
     
 
 
@@ -171,19 +171,19 @@ ks1 = get_k_factors(fh2d);
 
 
 ```julia
-gk1 = plot(ks1 .* dθ, gs1, legend=:topright, xlims=(-179, 179), xlabel="k-factor", ylabel="g(k)", label="g₁(k)")
+gk1 = plot(ks1 .* dEmitted, gs1, legend=:topright, xlims=(-179, 179), xlabel="k-factor", ylabel="g(k)", label="g₁(k)")
 ```
 
 
 
 
     
-![svg](MarkDown/output_19_0.svg)
+![svg](Markdown/output_19_0.svg)
     
 
 
 
-### Applying various data cuts, we can observe how ``g(k)`` behaves. For example, if we apply an energy cut for the sum of electron energies, ie. $E \in (3000, 3500)keV$ `` we get...
+### Applying various data cuts, we can observe how ``g(k)`` behaves. For example, if we apply an energy cut for the sum of electron energies, ie. $E \in (3000, 3500)keV$  we get...
 
 
 ```julia
@@ -213,7 +213,7 @@ histogram2d(gdf[!,2], gdf[!,1];
 
 
     
-![svg](MarkDown/output_21_0.svg)
+![svg](Markdown/output_21_0.svg)
     
 
 
@@ -228,46 +228,87 @@ ks2 = get_k_factors(fh2d);
 
 
 ```julia
-plot!(gk1, ks2  .* dθ, gs2, legend=:topright, xlims=(-179, 179), xlabel="k-factor", ylabel="g(k)", label="g₂(k), E ∈ (3000,3500)")
+plot!(gk1, ks2  .* dEmitted, gs2, legend=:topright, xlims=(-179, 179), xlabel="k-factor", ylabel="g(k)", label="g₂(k), E ∈ (3000,3500)")
 ```
 
 
 
 
     
-![svg](MarkDown/output_24_0.svg)
+![svg](Markdown/output_24_0.svg)
     
 
 
 
-### The first thing to notice is the reduced statistics. (For obvious reasons.) The more interesting however, is to look at the dispersion around the k = 0 line. Ideally, the statistics would be sacrified for the improved reconstruction precision -> narrower g(k). This we can better view by looking at $g_1(k), g_2(k)$ normalized by their maximum.  
+### The first thing to notice is the reduced statistics. (For obvious reasons.) The more interesting however, is to look at the dispersion around the k = 0 line. Ideally, the statistics would be sacrified for the improved reconstruction precision -> narrower g(k). This we can view better by looking at $g_1(k), g_2(k)$ normalized by their maximum.  
 
 
 ```julia
 gMax1 = maximum(gs1)
 gMax2 = maximum(gs2)
-plot(ks1  .* dθ, gs1 ./ gMax1, legend=:topright, xlims=(-179, 179), xlabel="k-factor", ylabel="g(k)", label="g₁(k)_relative")
-plot!(ks2 .* dθ, gs2 ./ gMax2, legend=:topright, xlims=(-179, 179), xlabel="k-factor", ylabel="g(k)", label="g₂(k)_relative")
+plot(ks1  .* dEmitted, gs1 ./ gMax1, legend=:topright, xlims=(-179, 179), xlabel="k-factor", ylabel="g(k)", label="g₁(k)_relative")
+plot!(ks2 .* dEmitted, gs2 ./ gMax2, legend=:topright, xlims=(-179, 179), xlabel="k-factor", ylabel="g(k)", label="g₂(k)_relative")
 ```
 
 
 
 
     
-![svg](MarkDown/output_26_0.svg)
+![svg](Markdown/output_26_0.svg)
     
 
 
 
 ### We can see that while applying an energy cut on the data results in decreased statistics, it did provide for a better reconstruction precision. We thus have a tool for comparing the effects of data cuts on the data.
 
-### Next we look more in detail at the individual $\phi$ slices. We first slice up ``f(ϕ, θ)`` horizontally in slices of $d\phi$ = 1 \deg$. We look at the ``g(k)``s of the individual slices.  
+### Next we look more in detail at individual $\phi$ slices. We first slice up ``f(ϕ, θ)`` horizontally in slices of $d\phi$ = $5\deg$. We look at the ``g(k)``s of the individual slices. I.e. a horizontal slice with $\phi \in (0, 5)\deg$ and its $g(k)$ would look as:
 
 
 ```julia
-dθ = 5
-sign = "p"
-maxSteps = Int(180 / dθ)
+gdf = @chain tree begin
+    @subset((0 .<= :thetaEscaped .<= 5))
+    @select(:thetaEscaped, :thetaEmitted)
+end
+
+fh2d = Hist2D(                                           # h2d object similar to TH2D from ROOT
+(gdf[!,2], gdf[!,1]),      
+(minAngle:dEmitted:maxAngle, minAngle:dEmitted:maxAngle), 
+) 
+
+gs4 = get_diagonal_sums(fh2d)
+ks4 = get_k_factors(fh2d);
+
+h = histogram2d(gdf[!,2], gdf[!,1];
+    nbins        = (nBins, nBins),
+    xlabel       = "θemitted -> θ",
+    ylabel       = "θescaped -> ϕ",
+    legend       = :topright,
+    title        = string("f(ϕ, θ): dϕ ∈ (0, 5)°, ", nrow(gdf), " entries"),
+    lims         = (0, 180),
+    # aspect_ratio = 1,
+    )
+p = plot(ks4, gs4, label = "")
+
+l = @layout [a{0.4w} b]
+plot(h,p, layout = l)
+```
+
+
+
+
+    
+![svg](Markdown/output_29_0.svg)
+    
+
+
+
+### Repeating this procedure, slicing $f(\phi, \theta)$ horizontally to cover the whole 0 - 180 degree range yields:
+
+
+```julia
+dϕ = 5                      # step in ϕ
+sign = "p"                  # sign in get_cut_edges function
+maxSteps = Int(180 / dϕ)    # max number of steps (slices)
 ```
 
 
@@ -277,77 +318,32 @@ maxSteps = Int(180 / dθ)
 
 
 
-
-```julia
-labels = []                               # initialize array for labels
-fh2ds = Array{Hist2D, 1}                  # initialize array of Hist2D object (each slice gets one)
-```
-
-
-
-
-    Vector{Hist2D} (alias for Array{Hist2D, 1})
-
-
-
-### Initialize arrays to hold the g(k) integrals.
-
-
-```julia
-gs = [] # standard g(k)
-ks = [] # goes from -179 to 179
-
-gs_cdf = [] # g(k) but instead of integral it is a cummulative integration
-```
-
-
-
-
-    Any[]
-
-
-
-
-```julia
-for (i, n) in enumerate(1:dθ:180)
-    cutEdges1 = get_cut_edges(n - 1, 1, dθ, sign)                   # provides the lower and upper cut 
-
-    sdf = @chain tree begin                                         # filter out the dataframe
-        @subset((cutEdges1[1] .<= :thetaEscaped .<= cutEdges1[2]))
-        @select(:thetaEscaped, :thetaEmitted)
-    end
-
-    push!(labels, string(
-        "θ ∈ (",
-        cutEdges1[1],
-        ", ",
-        cutEdges1[2],
-        " )",
-    ))
-
-    fh2ds = Hist2D(
-        (sdf[!, :thetaEmitted], sdf[!, :thetaEscaped]),
-        (minAngle:dEmitted:maxAngle, minAngle:dEmitted:maxAngle),
-    )
-
-    push!(gs, get_diagonal_sums(fh2ds))
-    push!(ks, get_k_factors(fh2ds))
-    push!(gs_cdf, get_diagonal_sums_cdf(fh2ds))
-end
-```
+### Initialize arrays to hold the g(k) integrals. One g(k) is obtained for each horizontal slice.
 
 ### We can look at the individual lines of ``g(k)``
 
 
 ```julia
-plot(ks,gs)
+dfGOrig = get_gs_df(tree, dϕ, sign)
+matGOrig = df_to_mat(dfGOrig);
+```
+
+
+```julia
+p = plot()
+lbls = names(dfGOrig)
+for i in 2:ncol(dfGOrig)-1
+    plot!(dfGOrig.k, dfGOrig[!,i+1], label = lbls[i])
+end
+p
+
 ```
 
 
 
 
     
-![svg](MarkDown/output_35_0.svg)
+![svg](Markdown/output_35_0.svg)
     
 
 
@@ -356,51 +352,32 @@ plot(ks,gs)
 
 
 ```julia
-yMax, xMax = Int(180 / dθ - 1), Int(180 / dθ - 1)
-x = -xMax:1:xMax
-y = 0:yMax
-contourStep = 0.1
-
-z = zeros(length(y), length(x))   # create matrix that represents the g(k, dϕ) values
-for c in eachindex(x)
-    for r in eachindex(y)
-        z[r, c] = get_gs(y[r], x[c], gs)
-    end
-end
+xRange = dϕ-180:dϕ:180-dϕ
+yRange = 0:dϕ:180-dϕ
+sf1 = surface(xRange, yRange,  matGOrig, legend =:none, xlabel ="k", ylabel ="dϕ", zlabel="g(k, dϕ)")
+hm1 =contourf(xRange, yRange,  matGOrig, ylabel ="dϕ", xlabel ="k" )
+vline!([0], label ="")
+plot(sf1,hm1, size =(1000,400), layout = @layout [a{0.4w} b])
 ```
+
+
+
+
+    
+![svg](Markdown/output_37_0.svg)
+    
+
+
+
+### Now we can see a few important features. First of all, there are two peaks visible in the left figure, with the higher peak (more statistics) being in the region of $130 < \phi < 170$ . Secondly,  we can see the deviation of the peaks from the `` k = 0`` line in the right figure. There are two hotspots visible. First hotspot (corresponding to the lower peak in  figure) is centered around $d\phi \approx 30 \deg$ and is shifted slightly to the right of the ``k = 0`` line. The escaped angle overestimates the emitted angle. Second hotspot (corresponding to the higher peak in figure) is centered around $d\phi \approx 150 \deg$ and is shifted visibly to the left of the ``k = 0`` line. The escaped angle underestimates the emitted angle. Lastly, we can see that the regions $\phi \approx 0 \deg$ and $\phi \approx 180 \deg$ are squeezed toward higher, lower angles, respectively. 
+
+### Ideally, we would want to have the peaks centered around the ``k=0`` line. To do that, we can perform justified manipulation of $\phi$ in terms of shifting the entire row ($d\phi$ slice) to the right or left by some set amount ``s`` [$s \in (-180,180)$]. The new (modified) angle is defined as $\phi' = \phi + s$. This will, inevitably, reduce the obtained statistics (if an angle is shifted toward unphysical values, ie. $\phi >180$), however if better precision is achieved, it may be worthwile. In the first case, let's try to shift each row by the mean value in that row, so that the mean is centered at ``k=0``. To determine whether this gives us better or worse result, we compare the rms value of each slice before and after shifting.  
 
 
 ```julia
-c1 = plot(
-    x .* dθ,
-    y .* dθ,
-    z;
-    ylims = (0, 180),
-    yticks = 0:30:180,
-    xlabel = "k",
-    ylabel = "ϕ",
-    zlabel = "g(k, dϕ)",
-    legend = :none,
-    title = string("dϕ= ", dθ, "° "),
-    dpi = 150,
-    linetype = :surface,
-)
-c2 = plot(
-    x .* dθ,
-    y .* dθ,
-    z;
-    ylims = (0, 180),
-    yticks = 0:30:180,
-    xlabel = "k",
-    ylabel = "ϕ",
-    legend = :none,
-    title = string("dϕ= ", dθ, "° "),
-    dpi = 150,
-    linetype = :contourf,
-)
-vline!([0], label = "", c = :black, l2 = 4)
+shiftPoints = [get_gs_mean(dfGOrig[:,i], dfGOrig[:,1]) for i in 2:ncol(dfGOrig) ]      # find mean of each g(k) and save in vector
 
-plot(c1,c2, size = (1000, 400))
+scatter(xPts, shiftPoints, xlabel = "dϕ", ylabel = "mean", legend =:topleft, label ="s = k_mean" )
 
 ```
 
@@ -408,72 +385,7 @@ plot(c1,c2, size = (1000, 400))
 
 
     
-![svg](MarkDown/output_38_0.svg)
-    
-
-
-
-### 
-
-### Now we can see a few important features. First of all, on the left figure, there are two peaks visible, with the higher peak (more statistics) being in the region of $\phi > 120$ . Secondly, on the right figure we can see the deviation of the peaks from the `` k = 0`` line. There are two hotspots visible. First hotspot (corresponding to the lower peak in left figure) is centered around $d\phi \approx 30 \deg$ and is shifted slightly to the right of the ``k = 0`` line. The escaped angle overestimates the emitted angle. Second hotspot (corresponding to the higher peak in left figure) is centered around $d\phi \approx 150 \deg$ and is shifted visibly to the left of the ``k = 0`` line. The escaped angle underestimates the emitted angle. Lastly, we can see that the regions $\phi \approx 0 \deg$ and $\phi \approx 180 \deg$ are squeezed toward higher, lower angles, respectively. 
-
-### Furthermore, we can look at the ``g(k)`` calculated as a cummulative integration. Cummulative sum is made over the diagonals from 179 to -179. (This might change later, but I'm not sure if it's needed) 
-
-
-```julia
-z = zeros(length(y), length(x))
-for c in eachindex(x)
-    for r in eachindex(y)
-        z[r, c] = get_gs(y[r], x[c], gs_cdf)
-    end
-end
-
-```
-
-
-```julia
-c2 = plot(
-    x .* dθ,
-    y .* dθ,
-    z;
-    ylims = (0, 180),
-    yticks = 0:30:180,
-    xlabel = "k",
-    ylabel = "ϕ",
-    legend = :none,
-    title = string("dϕ= ", dθ, "° "),
-    dpi = 150,
-    linetype = :contourf,
-    levels = 0:contourStep:1,
-    contour_labels = true,
-)
-vline!([0], label = "", c = :black, l2 = 4)
-
-```
-
-
-
-
-    
-![svg](MarkDown/output_43_0.svg)
-    
-
-
-
-### In this figure we can see the cummulative distribution of the $g(k, d\phi)$. We can now take a look, for example, by how much the 50% of the statistics is shifted from ``k=0`` line for each $d\phi$.
-
-
-```julia
-halfPoints = [ks[1][argmin(map( x -> abs(0.5 - x), g ))] * dθ for g in gs_cdf] 
-
-scatter(xPts, halfPoints, xlabel = "dϕ", ylabel = "50% stat" )
-```
-
-
-
-
-    
-![svg](MarkDown/output_45_0.svg)
+![svg](Markdown/output_40_0.svg)
     
 
 
@@ -482,27 +394,46 @@ scatter(xPts, halfPoints, xlabel = "dϕ", ylabel = "50% stat" )
 ```julia
 modTree = @chain tree begin
     @select(:thetaEmitted, :thetaEscaped)
-    @rtransform :thetaEscapedModified = shift_angle( :thetaEscaped, halfPoints )
-    @rtransform :shift_angle2 = :thetaEscaped - shift_angle( :thetaEscaped, halfPoints )
-    @subset( 0 .<= :thetaEscapedModified .<= 180 )
+    @rtransform :bin =  get_bin_center(:thetaEscaped, Int(180/dϕ)) 
+
+    @rtransform :thetaEscaped = :thetaEscaped + shiftPoints[Int(ceil(:bin/dϕ))]
+    @subset( 0 .< :thetaEscaped .< 180)
 end
 ```
 
 
 
 
-<div class="data-frame"><p>14,675,804 rows × 4 columns</p><table class="data-frame"><thead><tr><th></th><th>thetaEmitted</th><th>thetaEscaped</th><th>thetaEscapedModified</th><th>shift_angle2</th></tr><tr><th></th><th title="Float64">Float64</th><th title="Float64">Float64</th><th title="Float64">Float64</th><th title="Float64">Float64</th></tr></thead><tbody><tr><th>1</th><td>89.6031</td><td>94.6325</td><td>94.6325</td><td>0.0</td></tr><tr><th>2</th><td>96.965</td><td>139.497</td><td>149.497</td><td>-10.0</td></tr><tr><th>3</th><td>154.233</td><td>138.388</td><td>148.388</td><td>-10.0</td></tr><tr><th>4</th><td>67.3403</td><td>154.281</td><td>169.281</td><td>-15.0</td></tr><tr><th>5</th><td>11.2133</td><td>53.0724</td><td>48.0724</td><td>5.0</td></tr><tr><th>6</th><td>168.417</td><td>81.0901</td><td>81.0901</td><td>0.0</td></tr><tr><th>7</th><td>122.632</td><td>69.6012</td><td>64.6012</td><td>5.0</td></tr><tr><th>8</th><td>4.96695</td><td>34.9839</td><td>29.9839</td><td>5.0</td></tr><tr><th>9</th><td>79.857</td><td>61.1214</td><td>56.1214</td><td>5.0</td></tr><tr><th>10</th><td>43.0942</td><td>33.994</td><td>28.994</td><td>5.0</td></tr><tr><th>11</th><td>35.1387</td><td>104.069</td><td>109.069</td><td>-5.0</td></tr><tr><th>12</th><td>150.65</td><td>101.923</td><td>106.923</td><td>-5.0</td></tr><tr><th>13</th><td>56.3877</td><td>55.6631</td><td>50.6631</td><td>5.0</td></tr><tr><th>14</th><td>128.995</td><td>94.8403</td><td>94.8403</td><td>0.0</td></tr><tr><th>15</th><td>63.2692</td><td>40.9504</td><td>35.9504</td><td>5.0</td></tr><tr><th>16</th><td>40.4733</td><td>55.1476</td><td>50.1476</td><td>5.0</td></tr><tr><th>17</th><td>124.468</td><td>142.771</td><td>152.771</td><td>-10.0</td></tr><tr><th>18</th><td>128.263</td><td>20.8424</td><td>15.8424</td><td>5.0</td></tr><tr><th>19</th><td>142.67</td><td>112.558</td><td>117.558</td><td>-5.0</td></tr><tr><th>20</th><td>68.2757</td><td>81.6263</td><td>81.6263</td><td>0.0</td></tr><tr><th>&vellip;</th><td>&vellip;</td><td>&vellip;</td><td>&vellip;</td><td>&vellip;</td></tr></tbody></table></div>
+<div class="data-frame"><p>13,759,406 rows × 3 columns</p><table class="data-frame"><thead><tr><th></th><th>thetaEmitted</th><th>thetaEscaped</th><th>bin</th></tr><tr><th></th><th title="Float64">Float64</th><th title="Float64">Float64</th><th title="Float64">Float64</th></tr></thead><tbody><tr><th>1</th><td>89.6031</td><td>95.3077</td><td>92.5</td></tr><tr><th>2</th><td>96.965</td><td>157.081</td><td>137.5</td></tr><tr><th>3</th><td>154.233</td><td>155.971</td><td>137.5</td></tr><tr><th>4</th><td>67.3403</td><td>177.772</td><td>152.5</td></tr><tr><th>5</th><td>11.2133</td><td>38.079</td><td>52.5</td></tr><tr><th>6</th><td>168.417</td><td>76.8998</td><td>82.5</td></tr><tr><th>7</th><td>122.632</td><td>59.2241</td><td>67.5</td></tr><tr><th>8</th><td>4.96695</td><td>14.9949</td><td>32.5</td></tr><tr><th>9</th><td>79.857</td><td>49.0303</td><td>62.5</td></tr><tr><th>10</th><td>43.0942</td><td>14.005</td><td>32.5</td></tr><tr><th>11</th><td>35.1387</td><td>109.492</td><td>102.5</td></tr><tr><th>12</th><td>150.65</td><td>107.346</td><td>102.5</td></tr><tr><th>13</th><td>56.3877</td><td>42.0529</td><td>57.5</td></tr><tr><th>14</th><td>128.995</td><td>95.5156</td><td>92.5</td></tr><tr><th>15</th><td>63.2692</td><td>23.5382</td><td>42.5</td></tr><tr><th>16</th><td>40.4733</td><td>41.5374</td><td>57.5</td></tr><tr><th>17</th><td>124.468</td><td>162.065</td><td>142.5</td></tr><tr><th>18</th><td>142.67</td><td>121.997</td><td>112.5</td></tr><tr><th>19</th><td>68.2757</td><td>77.436</td><td>82.5</td></tr><tr><th>20</th><td>143.694</td><td>169.719</td><td>147.5</td></tr><tr><th>&vellip;</th><td>&vellip;</td><td>&vellip;</td><td>&vellip;</td></tr></tbody></table></div>
 
 
 
 
 ```julia
-histogram2d(modTree.thetaEmitted, modTree.thetaEscapedModified,
+nrow(modTree)/nrow(tree)
+```
+
+
+
+
+    0.8737258038624411
+
+
+
+
+```julia
+dfG2 = get_gs_df(modTree, dϕ, sign)
+matG2 = df_to_mat(dfG2);
+```
+
+
+```julia
+h2d2 = histogram2d(modTree.thetaEmitted, modTree.thetaEscaped,
     nbins        = (nBins, nBins),
-    xlabel       = "θemitted -> θ",
-    ylabel       = "θescaped -> ϕ",
+    xlabel       = "θ",
+    ylabel       = "ϕ'",
     legend       = :topright,
-    title        = string("f(ϕ, θ): E ∈ (3000, 3500)keV, ", nrow(modTree), " entries"),
+    title        = string("f(ϕ, θ), ", nrow(modTree), " entries"),
     lims         = (0, 180),
     aspect_ratio = 1,)
 plot!(xPts, xPts, label ="")
@@ -512,300 +443,183 @@ plot!(xPts, xPts, label ="")
 
 
     
-![svg](MarkDown/output_47_0.svg)
+![svg](Markdown/output_44_0.svg)
     
 
 
 
-### Some of the $d\phi$ lines are empty in the histgoram. This is due to the "discrete" nature of the 50% gs_cdf, some angles are shifted by more than 5 degrees leaving the bin empty. We can look again at the ``g(k)`` plots and see whether the applied shift was successfull. 
+### We can see that the hotspots are shifted, and slightly closer to the ``k=0`` line (qualitatively). The statistics is reduced to $\sim 87\%$. The seemingle discrete distribution is due to the fact that each slice has been shifted by a discrete number and this has shifted some angles toward certain slices more, or less. To view the effects of the shift, let's compare the 2d histograms, contour plots and the rms values for the two datasets. 
 
 
 ```julia
-gs = [] # standard g(k)
-ks = [] # goes from -179 to 179
+rms1 = [ get_rms(dfGOrig[:,i], dfGOrig[:,1]) for i in 2:ncol(dfGOrig) ]
 
-gs_cdf = [] # g(k) but instead of integral it is a cummulative integration
+sct1 = scatter( xPts, rms1, label ="rms(dϕ)", ms=2, legend=:top, xlabel ="dϕ slice", ylabel ="rms" )
 
-for (i, n) in enumerate(1:dθ:180)
-    cutEdges1 = get_cut_edges(n - 1, 1, dθ, sign)                   # provides the lower and upper cut 
-
-    sdf = @chain modTree begin                                         # filter out the dataframe
-        @subset((cutEdges1[1] .<= :thetaEscapedModified .<= cutEdges1[2]))
-        @select(:thetaEscapedModified, :thetaEmitted)
-    end
-
-    push!(labels, string(
-        "θ ∈ (",
-        cutEdges1[1],
-        ", ",
-        cutEdges1[2],
-        " )",
-    ))
-
-    fh2ds = Hist2D(
-        (sdf[!, :thetaEmitted], sdf[!, :thetaEscapedModified]),
-        (minAngle:dEmitted:maxAngle, minAngle:dEmitted:maxAngle),
-    )
-
-    push!(gs, get_diagonal_sums(fh2ds))
-    push!(ks, get_k_factors(fh2ds))
-    push!(gs_cdf, get_diagonal_sums_cdf(fh2ds))
-end
-
-
-z = zeros(length(y), length(x))   # create matrix that represents the g(k, dϕ) values
-for c in eachindex(x)
-    for r in eachindex(y)
-        z[r, c] = get_gs(y[r], x[c], gs)
-    end
-end
-
-c3 = plot(
-    x .* dθ,
-    y .* dθ,
-    z;
-    ylims = (0, 180),
-    yticks = 0:30:180,
-    xlabel = "k",
-    ylabel = "ϕ",
-    zlabel = "g(k, dϕ)",
-    legend = :none,
-    title = string("dϕ= ", dθ, "° "),
-    dpi = 150,
-    linetype = :surface,
-)
-c4 = plot(
-    x .* dθ,
-    y .* dθ,
-    z;
-    ylims = (0, 180),
-    yticks = 0:30:180,
-    xlabel = "k",
-    ylabel = "ϕ",
-    legend = :none,
-    title = string("dϕ= ", dθ, "° "),
-    dpi = 150,
-    linetype = :contourf,
-)
-vline!([0], label = "", c = :black, l2 = 4)
-
-plot(c3,c4, size = (1000, 400), title = "modified by cumulative 50% shift")
+# plot(title, h2d1, hm1, sct1, layout = @layout[a{0.05h};b c; d _] , size = (1100, 800))
+plot(h2d1, hm1, sct1, layout = @layout[a b; c _] , size = (1200, 800), plot_title= "Unmodified angles")
 ```
 
 
 
 
     
-![svg](MarkDown/output_49_0.svg)
+![svg](Markdown/output_46_0.svg)
     
 
 
 
 
 ```julia
-plot(c1,c2, size = (1000, 400), title = " original")
+hm2 =contourf(xRange, yRange,  matG2, ylabel ="dϕ'", xlabel ="k" )
+vline!([0], label ="")
+
+rms2 = [ get_rms(dfG2[:,i], dfG2[:,1]) for i in 2:ncol(dfG2) ]
+
+sct2 = scatter( xPts, rms2, label ="rms(dϕ')", ms=2, legend=:top, xlabel ="dϕ' slice", ylabel ="rms" )
+
+
+plot(h2d2, hm2, sct2, layout = @layout[a b; c _] , size = (1200, 800), plot_title= "Modified by mean angles")
 ```
 
 
 
 
     
-![svg](MarkDown/output_50_0.svg)
+![svg](Markdown/output_47_0.svg)
     
 
 
 
-### It can be seen that a slight shift toward the `` k = 0 `` line has been achieved. 
 
-### Same shifting procedure can be done using the mean of each ``g(k)``, hopefully getting an even better performance. 
+```julia
+scatter( [xPts xPts], [rms1 rms2],  label =["rms₁(dϕ)" "rms₂(dϕ)"], ms=3, legend=:top, xlabel ="dϕ slice", ylabel ="rms")
+```
+
+
+
+
+    
+![svg](Markdown/output_48_0.svg)
+    
+
+
 
 
 ```julia
-gs = [] # standard g(k)
-ks = [] # goes from -179 to 179
-
-gs_cdf = [] # g(k) but instead of integral it is a cummulative integration
-
-for (i, n) in enumerate(1:dθ:180)
-    cutEdges1 = get_cut_edges(n - 1, 1, dθ, sign)                   # provides the lower and upper cut 
-
-    sdf = @chain tree begin                                         # filter out the dataframe
-        @subset((cutEdges1[1] .<= :thetaEscaped .<= cutEdges1[2]))
-        @select(:thetaEscaped, :thetaEmitted)
-    end
-
-    push!(labels, string(
-        "θ ∈ (",
-        cutEdges1[1],
-        ", ",
-        cutEdges1[2],
-        " )",
-    ))
-
-    fh2ds = Hist2D(
-        (sdf[!, :thetaEmitted], sdf[!, :thetaEscaped]),
-        (minAngle:dEmitted:maxAngle, minAngle:dEmitted:maxAngle),
-    )
-
-    push!(gs, get_diagonal_sums(fh2ds))
-    push!(ks, get_k_factors(fh2ds))
-    push!(gs_cdf, get_diagonal_sums_cdf(fh2ds))
-end
+RMS1, S1 = get_rms_set(tree, dϕ);
 ```
 
 
 ```julia
-shiftPoints = [get_gs_mean(g, ks[1]) for g in gs ]      # find mean of each g(k) and save in vector
+minRMS = get_min_rms(RMS1)
+minShifts = get_min_shifts(S1, RMS1);
+```
 
-scatter(xPts, shiftPoints, xlabel = "dϕ", ylabel = "mean" )
+
+```julia
+scatter( [xPts xPts], [rms1 minRMS],  label =["rms₁(dϕ)" "rms₃(dϕ')"], ms=3, legend=:top, xlabel ="dϕ slice", ylabel ="rms")
+
 ```
 
 
 
 
     
-![svg](MarkDown/output_54_0.svg)
+![svg](Markdown/output_51_0.svg)
     
 
 
+
+
+```julia
+modes = [ dfGOrig[argmax(dfGOrig[:,i]), 1] for i in 2:ncol(dfGOrig)];
+```
+
+
+```julia
+contourf(xRange, yRange,  matGOrig , c=:greys, xlims=(minimum(dfGOrig[:,1]), maximum(dfGOrig[:,1])), ylims=(0, 180), )
+scatter!( minShifts, xPts, label = "s = minimized rms", ms =3 )
+scatter!( modes, xPts, label = "s = modes" , ms =3 )
+scatter!( shiftPoints, xPts, label ="s = mean", legend =:right, xlabel ="k-factor, s = k_max", ylabel="dϕ" , ms =3 )
+
+
+```
+
+
+
+
+    
+![svg](Markdown/output_53_0.svg)
+    
+
+
+
+
+```julia
+scatter( S, RMS, ms =6, label = reshape(lbls[2:end], 1, length(lbls[2:end])), 
+xlabel = "s", ylabel = "rms", c= :skyblue, grid=:off, legend =:none, frame =:none, minorgrid=:off, alpha = 0.1,
+marker = :square )
+
+```
+
+
+    UndefVarError: S not defined
+
+    
+
+    Stacktrace:
+
+     [1] top-level scope
+
+       @ In[37]:1
+
+     [2] eval
+
+       @ ./boot.jl:360 [inlined]
+
+     [3] include_string(mapexpr::typeof(REPL.softscope), mod::Module, code::String, filename::String)
+
+       @ Base ./loading.jl:1094
+
+
+
+```julia
+minShifts = reverse(minShifts);
+```
 
 
 ```julia
 modTree = @chain tree begin
     @select(:thetaEmitted, :thetaEscaped)
-    @rtransform :thetaEscapedModified = shift_angle( :thetaEscaped, shiftPoints )
-    @rtransform :shift_angle2 = :thetaEscaped - shift_angle( :thetaEscaped, shiftPoints )
-    @subset( 0 .<= :thetaEscapedModified .<= 180)
+    @transform :thetaEscapedOld = :thetaEscaped
+    @rtransform :bin =  get_bin_center(:thetaEscaped, Int(180/dϕ)) 
+
+    @rtransform :thetaEscaped = :thetaEscaped + minShifts[Int(ceil(:bin/dϕ))]
+    @subset( 0 .< :thetaEscaped .< 180)
 end
-
 ```
 
 
 
 
-<div class="data-frame"><p>15,588,576 rows × 4 columns</p><table class="data-frame"><thead><tr><th></th><th>thetaEmitted</th><th>thetaEscaped</th><th>thetaEscapedModified</th><th>shift_angle2</th></tr><tr><th></th><th title="Float64">Float64</th><th title="Float64">Float64</th><th title="Float64">Float64</th><th title="Float64">Float64</th></tr></thead><tbody><tr><th>1</th><td>89.6031</td><td>94.6325</td><td>94.7675</td><td>-0.135056</td></tr><tr><th>2</th><td>96.965</td><td>139.497</td><td>143.014</td><td>-3.51672</td></tr><tr><th>3</th><td>154.233</td><td>138.388</td><td>141.904</td><td>-3.51672</td></tr><tr><th>4</th><td>67.3403</td><td>154.281</td><td>158.979</td><td>-4.69818</td></tr><tr><th>5</th><td>11.2133</td><td>53.0724</td><td>50.0737</td><td>2.99869</td></tr><tr><th>6</th><td>168.417</td><td>81.0901</td><td>80.2521</td><td>0.838057</td></tr><tr><th>7</th><td>122.632</td><td>69.6012</td><td>67.5257</td><td>2.07542</td></tr><tr><th>8</th><td>4.96695</td><td>34.9839</td><td>30.9861</td><td>3.9978</td></tr><tr><th>9</th><td>79.857</td><td>61.1214</td><td>58.7032</td><td>2.41823</td></tr><tr><th>10</th><td>43.0942</td><td>33.994</td><td>29.9962</td><td>3.9978</td></tr><tr><th>11</th><td>35.1387</td><td>104.069</td><td>105.154</td><td>-1.08454</td></tr><tr><th>12</th><td>150.65</td><td>101.923</td><td>103.008</td><td>-1.08454</td></tr><tr><th>13</th><td>56.3877</td><td>55.6631</td><td>52.941</td><td>2.72204</td></tr><tr><th>14</th><td>128.995</td><td>94.8403</td><td>94.9754</td><td>-0.135056</td></tr><tr><th>15</th><td>63.2692</td><td>40.9504</td><td>37.468</td><td>3.48244</td></tr><tr><th>16</th><td>40.4733</td><td>55.1476</td><td>52.4255</td><td>2.72204</td></tr><tr><th>17</th><td>124.468</td><td>142.771</td><td>146.63</td><td>-3.8588</td></tr><tr><th>18</th><td>128.263</td><td>20.8424</td><td>16.2253</td><td>4.61701</td></tr><tr><th>19</th><td>105.706</td><td>172.673</td><td>179.987</td><td>-7.31367</td></tr><tr><th>20</th><td>142.67</td><td>112.558</td><td>114.446</td><td>-1.88783</td></tr><tr><th>&vellip;</th><td>&vellip;</td><td>&vellip;</td><td>&vellip;</td><td>&vellip;</td></tr></tbody></table></div>
+<div class="data-frame"><p>13,867,524 rows × 4 columns</p><table class="data-frame"><thead><tr><th></th><th>thetaEmitted</th><th>thetaEscaped</th><th>thetaEscapedOld</th><th>bin</th></tr><tr><th></th><th title="Float64">Float64</th><th title="Float64">Float64</th><th title="Float64">Float64</th><th title="Float64">Float64</th></tr></thead><tbody><tr><th>1</th><td>89.6031</td><td>95.6325</td><td>94.6325</td><td>92.5</td></tr><tr><th>2</th><td>96.965</td><td>157.497</td><td>139.497</td><td>137.5</td></tr><tr><th>3</th><td>154.233</td><td>156.388</td><td>138.388</td><td>137.5</td></tr><tr><th>4</th><td>67.3403</td><td>174.281</td><td>154.281</td><td>152.5</td></tr><tr><th>5</th><td>11.2133</td><td>38.0724</td><td>53.0724</td><td>52.5</td></tr><tr><th>6</th><td>168.417</td><td>77.0901</td><td>81.0901</td><td>82.5</td></tr><tr><th>7</th><td>122.632</td><td>59.6012</td><td>69.6012</td><td>67.5</td></tr><tr><th>8</th><td>4.96695</td><td>13.9839</td><td>34.9839</td><td>32.5</td></tr><tr><th>9</th><td>79.857</td><td>51.1214</td><td>61.1214</td><td>62.5</td></tr><tr><th>10</th><td>43.0942</td><td>12.994</td><td>33.994</td><td>32.5</td></tr><tr><th>11</th><td>35.1387</td><td>109.069</td><td>104.069</td><td>102.5</td></tr><tr><th>12</th><td>150.65</td><td>106.923</td><td>101.923</td><td>102.5</td></tr><tr><th>13</th><td>56.3877</td><td>42.6631</td><td>55.6631</td><td>57.5</td></tr><tr><th>14</th><td>128.995</td><td>95.8403</td><td>94.8403</td><td>92.5</td></tr><tr><th>15</th><td>63.2692</td><td>22.9504</td><td>40.9504</td><td>42.5</td></tr><tr><th>16</th><td>40.4733</td><td>42.1476</td><td>55.1476</td><td>57.5</td></tr><tr><th>17</th><td>124.468</td><td>161.771</td><td>142.771</td><td>142.5</td></tr><tr><th>18</th><td>142.67</td><td>122.558</td><td>112.558</td><td>112.5</td></tr><tr><th>19</th><td>68.2757</td><td>77.6263</td><td>81.6263</td><td>82.5</td></tr><tr><th>20</th><td>143.694</td><td>168.461</td><td>148.461</td><td>147.5</td></tr><tr><th>&vellip;</th><td>&vellip;</td><td>&vellip;</td><td>&vellip;</td><td>&vellip;</td></tr></tbody></table></div>
 
 
 
 
 ```julia
-histogram2d(modTree.thetaEmitted, modTree.thetaEscapedModified,
-    nbins        = (nBins, nBins),
-    xlabel       = "θemitted -> θ",
-    ylabel       = "θescaped -> ϕ",
-    legend       = :topright,
-    title        = string("f(ϕ, θ): E ∈ (3000, 3500)keV, ", nrow(modTree), " entries"),
-    lims         = (0, 180),
-    aspect_ratio = 1,)
-plot!(xPts, xPts, label ="")
-```
-
-
-
-
-    
-![svg](MarkDown/output_56_0.svg)
-    
-
-
-
-
-```julia
-gs = [] # standard g(k)
-ks = [] # goes from -179 to 179
-
-gs_cdf = [] # g(k) but instead of integral it is a cummulative integration
-
-for (i, n) in enumerate(1:dθ:180)
-    cutEdges1 = get_cut_edges(n - 1, 1, dθ, sign)                   # provides the lower and upper cut 
-
-    sdf = @chain modTree begin                                         # filter out the dataframe
-        @subset((cutEdges1[1] .<= :thetaEscapedModified .<= cutEdges1[2]))
-        @select(:thetaEscapedModified, :thetaEmitted)
-    end
-
-    push!(labels, string(
-        "θ ∈ (",
-        cutEdges1[1],
-        ", ",
-        cutEdges1[2],
-        " )",
-    ))
-
-    fh2ds = Hist2D(
-        (sdf[!, :thetaEmitted], sdf[!, :thetaEscapedModified]),
-        (minAngle:dEmitted:maxAngle, minAngle:dEmitted:maxAngle),
-    )
-
-    push!(gs, get_diagonal_sums(fh2ds))
-    push!(ks, get_k_factors(fh2ds))
-    push!(gs_cdf, get_diagonal_sums_cdf(fh2ds))
-end
-
-
-z = zeros(length(y), length(x))   # create matrix that represents the g(k, dϕ) values
-for c in eachindex(x)
-    for r in eachindex(y)
-        z[r, c] = get_gs(y[r], x[c], gs)
-    end
-end
-
+density(modTree.thetaEmitted,  label = "θ")
+density!(modTree.thetaEscapedOld,  label = "ϕ")
+density!(modTree.thetaEscaped, label="ϕ'")
 
 ```
 
 
-```julia
-c3 = plot(
-    x .* dθ,
-    y .* dθ,
-    z;
-    ylims = (0, 180),
-    yticks = 0:30:180,
-    xlabel = "k",
-    ylabel = "ϕ",
-    zlabel = "g(k, dϕ)",
-    legend = :none,
-    title = string("dϕ= ", dθ, "° "),
-    dpi = 150,
-    linetype = :surface,
-)
-c4 = plot(
-    x .* dθ,
-    y .* dθ,
-    z;
-    ylims = (0, 180),
-    yticks = 0:30:180,
-    xlabel = "k",
-    ylabel = "ϕ",
-    legend = :none,
-    title = string("dϕ= ", dθ, "° "),
-    dpi = 150,
-    linetype = :contourf,
-)
-vline!([0], label = "", c = :black, l2 = 4)
-
-plot(c3,c4, size = (1000, 400), title = "modified mean")
-```
-
-
 
 
     
-![svg](MarkDown/output_58_0.svg)
-    
-
-
-
-
-```julia
-plot(c1,c2, size = (1000, 400), title = " original")
-```
-
-
-
-
-    
-![svg](MarkDown/output_59_0.svg)
+![svg](Markdown/output_57_0.svg)
     
 
 
