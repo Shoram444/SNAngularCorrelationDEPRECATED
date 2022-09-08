@@ -1,28 +1,30 @@
 module MiscFuncs
 using DataFrames, DataFramesMeta, FHist, StatsBase, Polynomials
 
-export y,
-    get_theta_esc_slice,
-    Gaus,
-    get_chi2,
-    get_reco_efficiency,
-    get_diagonal_sums,
-    get_k_factors,
-    get_diagonal_sums_abs,
-    get_k_factors_abs,
-    get_slice_stats,
-    get_cut_edges,
-    get_gs,
-    get_gs_rel,
-    get_diagonal_sums_cdf,
-    shift_angle,
-    get_gs_mean,
-    get_rms,
-    turn90_cc,
-    get_gs_df,
-    df_to_mat
-
-
+export y,                   # Returns y(x) = x 
+    get_theta_esc_slice,    # Returns a slice of ϕ within given data cuts
+    Gaus,                   # Returns the value of normal distribution
+    get_chi2,               # Returns chi2 of the fit
+    get_reco_efficiency,    # DEPRECATED! Returns the efficiency of the reconstructed slice
+    get_diagonal_sums,      # Returns a vector of the sums of the diagonals of the 2d histogram.
+    get_k_factors,          # Returns a vector of the k-factors, representing by how much there is over/under-estimate.
+    get_diagonal_sums_abs,  # DEPRECATED! Returns a vector of the absolute sums of the diagonals of the 2d histogram.
+    get_k_factors_abs,      # DEPRECATED! Returns a vector of the absolute k-factors, representing by how much there is deviation.
+    get_slice_stats,        # Returns a vector of stats for the given slice of ϕ 
+    get_cut_edges,          # Returns a pair of cut edges for dϕ
+    get_gs,                 # DEPRECATED! Returns g(k, θ) 
+    get_gs_rel,             # DEPRECATED! Returns g(k, θ) relative
+    get_diagonal_sums_cdf,  # DEPRECATED! Returns a vector of the cdf sums of the diagonals of the 2d histogram.
+    shift_angle,            # Returns shifted angle ϕ' = ϕ + s
+    get_gs_mean,            # Returns mean value of the g(k) vector as if from histogram!
+    get_rms,                # Returns rms value of the g(k) vector as if from histogram!
+    turn90_cc,              # Returns nxm matrix with elements turned by 90° counter-clockwise (original matrix would be mxn) 
+    get_gs_df,              # Returns a DataFrame from tree with columns: k, dϕ₁, dϕ₂, ... 
+    df_to_mat,              # Returns a Matrix from dfG for plotting in heatmaps, surfaces, contours, etc. (the matrix is turned so the x-axis corresponds to k, y-axis to dϕ)
+    get_bin_center,         # Returns bin center of angle in range 0-180
+    get_rms_set,            # Returns a set of RMS values for each dϕ slice (each row represents one dϕ slice, each value in row is rms with given shift)
+    get_min_rms,            # Returns a vector of minized RMS values (minimum from the set of RMS values obtained by get_rms_set)
+    get_min_shifts          # Returns a vector of minimized shifts 
 
 y(x) = x # generic linear line y = x 
 
@@ -374,6 +376,10 @@ function get_gs_mean(gsVector, ksVector)
 end
 
 function get_rms( gsVector, ksVector )
+    if (sum(gsVector) <= 0.0 )
+        println("WARNING! Sum of g is 0! Provided empty diagonal. RMS is set to 0!")
+        return 0.0
+    end
     meanOfSquares = sum( gsVector .* (ksVector ) .^2 ) / sum(gsVector)  # sum[ (gᵢ*( kᵢ)^2 ) ] / sum(gᵢ)
     return sqrt( meanOfSquares )
 end
@@ -433,6 +439,58 @@ function df_to_mat( df::DataFrame )
     return matNew
 end
 
+function get_bin_center(x, nBins)
+    dϕ = 180/nBins
+    return ceil(x/dϕ)*dϕ - dϕ/2
+end
 
+function get_rms_set(_tree, _dϕ)
+    RMS = Vector{Vector{Float64}}(undef, Int(180/_dϕ))                   # container for the RMS vectors (each row represnts one slice dϕ)
+    S = Vector{Vector{Float64}}(undef, Int(180/_dϕ))                     # container for the shifts vectors (each row represnts one slice dϕ)
+    dfG = get_gs_df(_tree, _dϕ, "p")
+
+    for (i, n) in enumerate(1:_dϕ:180)
+        cutEdges1 = get_cut_edges(n - 1, 1, _dϕ, "p")                    # provides the lower and upper cut 
+        shifts    = _dϕ*(1-i):180-i*_dϕ                               # range of shifts is limited from left and right by empty diagonals, ie. for _dϕ = 0-5, shifts can go only [0-175)
+        sdf       = @chain _tree begin                                   # filter out the dataframe
+            @select(:thetaEscaped, :thetaEmitted)                       # keeps only the two angles columns
+            @subset((cutEdges1[1] .<= :thetaEscaped .<= cutEdges1[2]))  # keeps only rows where ϕ is within the cut edges
+        end
+    
+        rms = Vector{Float64}(undef, length(shifts))
+    
+        for j in 1:length(shifts)
+            @rtransform! sdf :thetaModified = :thetaEscaped .+ shifts[j]
+            @rsubset! sdf 0 .<= :thetaModified .<= 180
+    
+            fh2d = Hist2D(                                          
+                (sdf.thetaEmitted, sdf.thetaModified),      
+                (0:_dϕ:180, 0:_dϕ:180), 
+                ) 
+    
+            g      = get_diagonal_sums(fh2d)
+            if ( sum(g) <= 0)
+                @show i,j,n
+                @show shifts
+                @show cutEdges1
+                @show g 
+            end
+            rms[j] = get_rms(g, dfG[:,1])
+    
+        end
+        RMS[i] = rms
+        S[i]   = shifts
+
+    end
+    return RMS, S
+end
+
+function get_min_rms(_RMS )
+    return [minimum(r) for r in _RMS]
+end
+
+function get_min_shifts(_S, _RMS)
+    return [_S[i][argmin(_RMS[i])] for i in 1:length(_RMS)]
+end
 
 end #MODULE END
