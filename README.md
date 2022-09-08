@@ -129,7 +129,7 @@ h2d1 = histogram2d(
 
 
     
-![svg](Markdown/output_13_0.svg)
+![svg](MarkDown/output_13_0.svg)
     
 
 
@@ -156,7 +156,7 @@ plot!(xPts, xPts .- 30, label = "k = -30", lw = 5)
 
 
     
-![svg](Markdown/output_16_0.svg)
+![svg](MarkDown/output_16_0.svg)
     
 
 
@@ -178,7 +178,7 @@ gk1 = plot(ks1 .* dEmitted, gs1, legend=:topright, xlims=(-179, 179), xlabel="k-
 
 
     
-![svg](Markdown/output_19_0.svg)
+![svg](MarkDown/output_19_0.svg)
     
 
 
@@ -213,7 +213,7 @@ histogram2d(gdf[!,2], gdf[!,1];
 
 
     
-![svg](Markdown/output_21_0.svg)
+![svg](MarkDown/output_21_0.svg)
     
 
 
@@ -235,7 +235,7 @@ plot!(gk1, ks2  .* dEmitted, gs2, legend=:topright, xlims=(-179, 179), xlabel="k
 
 
     
-![svg](Markdown/output_24_0.svg)
+![svg](MarkDown/output_24_0.svg)
     
 
 
@@ -254,7 +254,7 @@ plot!(ks2 .* dEmitted, gs2 ./ gMax2, legend=:topright, xlims=(-179, 179), xlabel
 
 
     
-![svg](Markdown/output_26_0.svg)
+![svg](MarkDown/output_26_0.svg)
     
 
 
@@ -297,7 +297,7 @@ plot(h,p, layout = l)
 
 
     
-![svg](Markdown/output_29_0.svg)
+![svg](MarkDown/output_29_0.svg)
     
 
 
@@ -343,7 +343,7 @@ p
 
 
     
-![svg](Markdown/output_35_0.svg)
+![svg](MarkDown/output_35_0.svg)
     
 
 
@@ -364,7 +364,7 @@ plot(sf1,hm1, size =(1000,400), layout = @layout [a{0.4w} b])
 
 
     
-![svg](Markdown/output_37_0.svg)
+![svg](MarkDown/output_37_0.svg)
     
 
 
@@ -385,7 +385,7 @@ scatter(xPts, shiftPoints, xlabel = "dϕ", ylabel = "mean", legend =:topleft, la
 
 
     
-![svg](Markdown/output_40_0.svg)
+![svg](MarkDown/output_40_0.svg)
     
 
 
@@ -443,7 +443,7 @@ plot!(xPts, xPts, label ="")
 
 
     
-![svg](Markdown/output_44_0.svg)
+![svg](MarkDown/output_44_0.svg)
     
 
 
@@ -464,7 +464,7 @@ plot(h2d1, hm1, sct1, layout = @layout[a b; c _] , size = (1200, 800), plot_titl
 
 
     
-![svg](Markdown/output_46_0.svg)
+![svg](MarkDown/output_46_0.svg)
     
 
 
@@ -486,7 +486,7 @@ plot(h2d2, hm2, sct2, layout = @layout[a b; c _] , size = (1200, 800), plot_titl
 
 
     
-![svg](Markdown/output_47_0.svg)
+![svg](MarkDown/output_47_0.svg)
     
 
 
@@ -500,7 +500,7 @@ scatter( [xPts xPts], [rms1 rms2],  label =["rms₁(dϕ)" "rms₂(dϕ)"], ms=3, 
 
 
     
-![svg](Markdown/output_48_0.svg)
+![svg](MarkDown/output_48_0.svg)
     
 
 
@@ -526,7 +526,7 @@ scatter( [xPts xPts], [rms1 minRMS],  label =["rms₁(dϕ)" "rms₃(dϕ')"], ms=
 
 
     
-![svg](Markdown/output_51_0.svg)
+![svg](MarkDown/output_51_0.svg)
     
 
 
@@ -550,7 +550,7 @@ scatter!( shiftPoints, xPts, label ="s = mean", legend =:right, xlabel ="k-facto
 
 
     
-![svg](Markdown/output_53_0.svg)
+![svg](MarkDown/output_53_0.svg)
     
 
 
@@ -619,7 +619,7 @@ density!(modTree.thetaEscaped, label="ϕ'")
 
 
     
-![svg](Markdown/output_57_0.svg)
+![svg](MarkDown/output_57_0.svg)
     
 
 
