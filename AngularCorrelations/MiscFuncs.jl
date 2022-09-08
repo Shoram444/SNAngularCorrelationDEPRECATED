@@ -1,5 +1,5 @@
 module MiscFuncs
-using DataFrames, DataFramesMeta, FHist, StatsBase
+using DataFrames, DataFramesMeta, FHist, StatsBase, Polynomials
 
 export y,
     get_theta_esc_slice,
@@ -16,7 +16,11 @@ export y,
     get_gs_rel,
     get_diagonal_sums_cdf,
     shift_angle,
-    get_gs_mean
+    get_gs_mean,
+    get_rms,
+    turn90_cc,
+    get_gs_df,
+    df_to_mat
 
 
 
@@ -228,7 +232,7 @@ function get_k_factors(h2d)
     ks = zeros(2m - 1)     # initialize array of k-factors
 
     for d in 1:(2m - 1)            # loop over the diagnoal index in sums
-        k = d - m 
+        k = m - d 
         ks[d] = k
     end
     return ks
@@ -350,19 +354,85 @@ function get_gs_rel(θ, k, gs) # return the value of g corresponding to the θ a
     return gs[r][c] ./ maximum(gs[r])
 end
 
-function shift_angle(angle, shifter)
+function shift_angle(angle, shifter::Vector{Float64})
     dϕ = 180/length(shifter)
     shiftIndex = Int(floor(angle/dϕ) +1 ) < 180/dϕ ? Int(floor(angle/dϕ) +1 ) : Int(180/dϕ) 
     newAngle = angle - shifter[shiftIndex]
+end
+
+function shift_angle(angle, shifter::Polynomial)
+    newAngle = angle - shifter(angle)
 end
 
 function get_gs_mean(gsVector, ksVector)
     N = sum(gsVector)
     ss = 0.0
     for i in eachindex(gsVector)
-        ss += gsVector[i] * ksVector[i]
+        ss += gsVector[i] * ksVector[i] 
     end
     return ss/N
 end
+
+function get_rms( gsVector, ksVector )
+    meanOfSquares = sum( gsVector .* (ksVector ) .^2 ) / sum(gsVector)  # sum[ (gᵢ*( kᵢ)^2 ) ] / sum(gᵢ)
+    return sqrt( meanOfSquares )
+end
+
+function turn90_cc(_m)    # returns a matrix which elements are turned by 90degrees in counter-clowise direction
+    mat = zeros(size(_m)) # initiaite matrix of zeros of same size as _m
+    n   = size(_m)[1]     # number of rows of matrix _m
+    c   = Vector{Float64}(undef,n) # placeholder for the elemnts of the column
+
+    for i in 0:n-1
+        c           = _m[:,end-i]      # take last column first, move to the "left"
+        mat[i+1,:]  = reshape(c, 1, n) # last column becomes first row, second last column becomes second row, etc.
+    end
+    return mat
+end
+
+
+function get_gs_df(_tree, _dϕ, _sign = "p")
+    fh2d = Hist2D(                                          
+    (_tree.thetaEmitted, _tree.thetaEscaped),      
+    (0:_dϕ:180, 0:_dϕ:180), 
+    ) 
+
+    df = DataFrame(k = get_k_factors(fh2d) .* _dϕ)  # Gs saved in a dataframe first column is k-factor, next columns correspond to ϕ-slices
+    
+    for (i, n) in enumerate(1:_dϕ:180)
+        cutEdges1 = get_cut_edges(n - 1, 1, _dϕ, _sign)                   # provides the lower and upper cut 
+    
+        sdf = @chain _tree begin                                         # filter out the dataframe
+            @subset((cutEdges1[1] .<= :thetaEscaped .<= cutEdges1[2]))
+            @select(:thetaEscaped, :thetaEmitted)
+        end
+
+        fh2d = Hist2D(
+            (sdf[!, :thetaEmitted], sdf[!, :thetaEscaped]),
+            (0:_dϕ:180, 0:_dϕ:180),
+        )
+    
+        colName = string(cutEdges1[1],"-",cutEdges1[2])   # df column name in format minϕ-maxϕ
+        df[!,colName] = get_diagonal_sums(fh2d)
+    end
+
+    return df
+end
+
+function df_to_mat( df::DataFrame )
+    mat = Matrix( df[:,2:end] ) # create a matrix from df and drop first column
+
+    nCol = size(mat)[2]   # m
+    nRow = size(mat)[1]   # n
+
+    matNew = zeros(nCol,nRow) # create zeros mxn matrix
+
+    for rNew in 1:nCol
+        matNew[rNew, :] = reverse(reshape(mat[:,rNew],1,nRow))
+    end
+    return matNew
+end
+
+
 
 end #MODULE END
