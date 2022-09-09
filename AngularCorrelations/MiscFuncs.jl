@@ -376,8 +376,8 @@ function get_gs_mean(gsVector, ksVector)
 end
 
 function get_rms( gsVector, ksVector )
-    if (sum(gsVector) <= 0.0 )
-        println("WARNING! Sum of g is 0! Provided empty diagonal. RMS is set to 0!")
+    if (sum(gsVector) == 0.0 )
+        # println("WARNING! Sum of g is 0! Provided empty diagonal. RMS is set to 0!")
         return 0.0
     end
     meanOfSquares = sum( gsVector .* (ksVector ) .^2 ) / sum(gsVector)  # sum[ (gᵢ*( kᵢ)^2 ) ] / sum(gᵢ)
@@ -444,14 +444,14 @@ function get_bin_center(x, nBins)
     return ceil(x/dϕ)*dϕ - dϕ/2
 end
 
-function get_rms_set(_tree, _dϕ)
+function get_rms_set(_tree, _dϕ, _ds = 1)
     RMS = Vector{Vector{Float64}}(undef, Int(180/_dϕ))                   # container for the RMS vectors (each row represnts one slice dϕ)
     S = Vector{Vector{Float64}}(undef, Int(180/_dϕ))                     # container for the shifts vectors (each row represnts one slice dϕ)
     dfG = get_gs_df(_tree, _dϕ, "p")
 
     for (i, n) in enumerate(1:_dϕ:180)
         cutEdges1 = get_cut_edges(n - 1, 1, _dϕ, "p")                    # provides the lower and upper cut 
-        shifts    = _dϕ*(1-i):180-i*_dϕ                               # range of shifts is limited from left and right by empty diagonals, ie. for _dϕ = 0-5, shifts can go only [0-175)
+        shifts    = -180:_ds:180                               # range of shifts is limited from left and right by empty diagonals, ie. for _dϕ = 0-5, shifts can go only [0-175)
         sdf       = @chain _tree begin                                   # filter out the dataframe
             @select(:thetaEscaped, :thetaEmitted)                       # keeps only the two angles columns
             @subset((cutEdges1[1] .<= :thetaEscaped .<= cutEdges1[2]))  # keeps only rows where ϕ is within the cut edges
@@ -469,12 +469,7 @@ function get_rms_set(_tree, _dϕ)
                 ) 
     
             g      = get_diagonal_sums(fh2d)
-            if ( sum(g) <= 0)
-                @show i,j,n
-                @show shifts
-                @show cutEdges1
-                @show g 
-            end
+
             rms[j] = get_rms(g, dfG[:,1])
     
         end
