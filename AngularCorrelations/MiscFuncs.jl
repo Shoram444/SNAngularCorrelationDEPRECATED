@@ -1,30 +1,33 @@
 module MiscFuncs
 using DataFrames, DataFramesMeta, FHist, StatsBase, Polynomials
 
-export y,                   # Returns y(x) = x 
-    get_theta_esc_slice,    # Returns a slice of ϕ within given data cuts
-    Gaus,                   # Returns the value of normal distribution
-    get_chi2,               # Returns chi2 of the fit
-    get_reco_efficiency,    # DEPRECATED! Returns the efficiency of the reconstructed slice
-    get_diagonal_sums,      # Returns a vector of the sums of the diagonals of the 2d histogram.
-    get_k_factors,          # Returns a vector of the k-factors, representing by how much there is over/under-estimate.
-    get_diagonal_sums_abs,  # DEPRECATED! Returns a vector of the absolute sums of the diagonals of the 2d histogram.
-    get_k_factors_abs,      # DEPRECATED! Returns a vector of the absolute k-factors, representing by how much there is deviation.
-    get_slice_stats,        # Returns a vector of stats for the given slice of ϕ 
-    get_cut_edges,          # Returns a pair of cut edges for dϕ
-    get_gs,                 # DEPRECATED! Returns g(k, θ) 
-    get_gs_rel,             # DEPRECATED! Returns g(k, θ) relative
-    get_diagonal_sums_cdf,  # DEPRECATED! Returns a vector of the cdf sums of the diagonals of the 2d histogram.
-    shift_angle,            # Returns shifted angle ϕ' = ϕ + s
-    get_gs_mean,            # Returns mean value of the g(k) vector as if from histogram!
-    get_rms,                # Returns rms value of the g(k) vector as if from histogram!
-    turn90_cc,              # Returns nxm matrix with elements turned by 90° counter-clockwise (original matrix would be mxn) 
-    get_gs_df,              # Returns a DataFrame from tree with columns: k, dϕ₁, dϕ₂, ... 
-    df_to_mat,              # Returns a Matrix from dfG for plotting in heatmaps, surfaces, contours, etc. (the matrix is turned so the x-axis corresponds to k, y-axis to dϕ)
-    get_bin_center,         # Returns bin center of angle in range 0-180
-    get_rms_set,            # Returns a set of RMS values for each dϕ slice (each row represents one dϕ slice, each value in row is rms with given shift)
-    get_min_rms,            # Returns a vector of minized RMS values (minimum from the set of RMS values obtained by get_rms_set)
-    get_min_shifts          # Returns a vector of minimized shifts 
+export  y,                   # Returns y(x) = x 
+        get_theta_esc_slice,    # Returns a slice of ϕ within given data cuts
+        Gaus,                   # Returns the value of normal distribution
+        get_chi2,               # Returns chi2 of the fit
+        get_reco_efficiency,    # DEPRECATED! Returns the efficiency of the reconstructed slice
+        get_diagonal_sums,      # Returns a vector of the sums of the diagonals of the 2d histogram.
+        get_k_factors,          # Returns a vector of the k-factors, representing by how much there is over/under-estimate.
+        get_diagonal_sums_abs,  # DEPRECATED! Returns a vector of the absolute sums of the diagonals of the 2d histogram.
+        get_k_factors_abs,      # DEPRECATED! Returns a vector of the absolute k-factors, representing by how much there is deviation.
+        get_slice_stats,        # Returns a vector of stats for the given slice of ϕ 
+        get_cut_edges,          # Returns a pair of cut edges for dϕ
+        get_gs,                 # DEPRECATED! Returns g(k, θ) 
+        get_gs_rel,             # DEPRECATED! Returns g(k, θ) relative
+        get_diagonal_sums_cdf,  # DEPRECATED! Returns a vector of the cdf sums of the diagonals of the 2d histogram.
+        shift_angle,            # Returns shifted angle ϕ' = ϕ + s
+        get_gs_mean,            # Returns mean value of the g(k) vector as if from histogram!
+        get_rms,                # Returns rms value of the g(k) vector as if from histogram!
+        turn90_cc,              # Returns nxm matrix with elements turned by 90° counter-clockwise (original matrix would be mxn) 
+        get_gs_df,              # Returns a DataFrame from tree with columns: k, dϕ₁, dϕ₂, ... 
+        df_to_mat,              # Returns a Matrix from dfG for plotting in heatmaps, surfaces, contours, etc. (the matrix is turned so the x-axis corresponds to k, y-axis to dϕ)
+        get_bin_center,         # Returns bin center of angle in range 0-180
+        get_rms_set,            # Returns a set of RMS values for each dϕ slice (each row represents one dϕ slice, each value in row is rms with given shift)
+        get_min_rms,            # Returns a vector of minized RMS values (minimum from the set of RMS values obtained by get_rms_set)
+        get_min_shifts,         # Returns a vector of minimized shifts 
+        get_phi_prime,          # Returns the value of ϕ' shifted by the provided shift vector
+        get_hist_mean,          # Returns the mean value of the histogram
+        get_hist_median         # Returns the !!binCenter!! of the bin containing the median value (50% statistic)
 
 y(x) = x # generic linear line y = x 
 
@@ -254,6 +257,7 @@ function get_slice_stats(
     _EMax::Real,
     _theta_esc::Vector{Float64},
     _binWidth = 1.0,
+    _weights::AbstractWeights = Weights(ones(eltype(_theta_esc),length(_theta_esc))) # if no weights are specified, use 1.0
 )
     meanData = 0
     modeData = 0
@@ -261,11 +265,11 @@ function get_slice_stats(
     varianceData = 0
     escEffData = 0
 
-    hist = Hist1D(_theta_esc, (0:_binWidth:180)) # used to get mode from the binned histogram
+    hist = Hist1D(_theta_esc, _weights, (0:_binWidth:180)) # used to get mode from the binned histogram
 
     if (length(_theta_esc) > 0)
-        meanData = mean(_theta_esc)
-        medianData = median(_theta_esc)
+        meanData = get_hist_mean(hist)  
+        medianData = get_hist_median(hist)
         varianceData = sqrt(var(_theta_esc; corrected = :true))
         escEffData = get_reco_efficiency(_θemiMin, _θemiMax, _theta_esc)
         modeData = argmax(bincounts(hist)) * _binWidth
@@ -441,6 +445,9 @@ end
 
 function get_bin_center(x, nBins)
     dϕ = 180/nBins
+    if x == 0.0
+        return dϕ/2
+    end
     return ceil(x/dϕ)*dϕ - dϕ/2
 end
 
@@ -487,5 +494,48 @@ end
 function get_min_shifts(_S, _RMS)
     return [_S[i][argmin(_RMS[i])] for i in 1:length(_RMS)]
 end
+
+function get_phi_prime(_ϕ, _shifts)
+    dϕ = Int(180/length(_shifts))
+    bin = get_bin_center(_ϕ, Int(180/dϕ))
+    return _ϕ + _shifts[Int(ceil(bin/dϕ))]
+end
+
+function get_hist_mean(_bincounts, _bincenters)
+    N = sum(_bincounts)
+    ss = 0.0
+    for i in eachindex(_bincounts)
+        ss += _bincounts[i] * _bincenters[i] 
+    end
+    return ss/N
+end
+
+function get_hist_mean(_hist)
+    binCounts = bincounts(_hist)
+    binCenters = bincenters(_hist)
+    N = sum(binCounts)
+    ss = 0.0
+    for i in eachindex(binCounts)
+        ss += binCounts[i] * binCenters[i] 
+    end
+    return ss/N
+end
+
+function get_hist_median(_hist)
+    halfPoint = (sum(bincounts(_hist))+1)/2 # get the half value of the observations
+    if (halfPoint == 0.0)
+        return 0.0
+    end
+
+    cs = cumsum(bincounts(_hist))           # vector of cumulative sum of the bin counts (median is found in the bin, where cs[i] is more than halfPoint)       
+    idx = 1
+
+    while cs[idx] < halfPoint               # if the cumulative sum of the bin contents is at the edge (ie. halfPoint = 2, cs[2] = 2, we save the next bin -> 3)
+        idx += 1
+    end
+
+    return bincenters(_hist)[idx]
+end
+
 
 end #MODULE END
