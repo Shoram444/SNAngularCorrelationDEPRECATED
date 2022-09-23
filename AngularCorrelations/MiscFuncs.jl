@@ -403,7 +403,8 @@ end
 
 function get_gs_df(_tree, _dϕ, _sign = "p")
     fh2d = Hist2D(                                          
-    (_tree.thetaEmitted, _tree.thetaEscaped),      
+    (_tree.thetaEmitted, _tree.thetaEscaped),  
+    Weights(_tree.weights),    
     (0:_dϕ:180, 0:_dϕ:180), 
     ) 
 
@@ -414,11 +415,12 @@ function get_gs_df(_tree, _dϕ, _sign = "p")
     
         sdf = @chain _tree begin                                         # filter out the dataframe
             @subset((cutEdges1[1] .<= :thetaEscaped .<= cutEdges1[2]))
-            @select(:thetaEscaped, :thetaEmitted)
+            @select(:thetaEscaped, :thetaEmitted, :weights)
         end
 
         fh2d = Hist2D(
             (sdf[!, :thetaEmitted], sdf[!, :thetaEscaped]),
+            Weights(sdf.weights),
             (0:_dϕ:180, 0:_dϕ:180),
         )
     
