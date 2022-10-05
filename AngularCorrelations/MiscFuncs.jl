@@ -388,6 +388,16 @@ function get_rms( gsVector, ksVector )
     return sqrt( meanOfSquares )
 end
 
+function get_rms( gsVector )
+    if (sum(gsVector) == 0.0 )
+        # println("WARNING! Sum of g is 0! Provided empty diagonal. RMS is set to 0!")
+        return 0.0
+    end
+    
+    return sqrt(1/(length(gsVector))*sum(gsVector .^2))
+end
+
+
 function turn90_cc(_m)    # returns a matrix which elements are turned by 90degrees in counter-clowise direction
     mat = zeros(size(_m)) # initiaite matrix of zeros of same size as _m
     n   = size(_m)[1]     # number of rows of matrix _m
