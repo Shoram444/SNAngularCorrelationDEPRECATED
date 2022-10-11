@@ -17,7 +17,7 @@ export  y,                   # Returns y(x) = x
         get_diagonal_sums_cdf,  # DEPRECATED! Returns a vector of the cdf sums of the diagonals of the 2d histogram.
         shift_angle,            # Returns shifted angle ϕ' = ϕ + s
         get_gs_mean,            # Returns mean value of the g(k) vector as if from histogram!
-        get_rms,                # Returns rms value of the g(k) vector as if from histogram!
+        get_rms,                # Returns rms value of the g(k) vector as if from histogram or from a vector!
         turn90_cc,              # Returns nxm matrix with elements turned by 90° counter-clockwise (original matrix would be mxn) 
         get_gs_df,              # Returns a DataFrame from tree with columns: k, dϕ₁, dϕ₂, ... 
         df_to_mat,              # Returns a Matrix from dfG for plotting in heatmaps, surfaces, contours, etc. (the matrix is turned so the x-axis corresponds to k, y-axis to dϕ)
