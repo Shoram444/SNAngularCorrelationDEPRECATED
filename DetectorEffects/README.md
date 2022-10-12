@@ -455,7 +455,7 @@ The figure above depicts the $g(k)$ histogram calculated from $f(\theta, \phi)$.
 $g(k)$ - analysis of energy cuts
 ===
 
-The goal of calculating $g(k)$ and its $RMS$ is to evaluate different data-cuts. In the analysis below, various energy cuts are tested. Six data-cuts are presented - the sum of electron energies $E_{sum}$ must fulfill $ E_{sum} \in (500i, 500i + \Delta E); \Delta E = 500 keV; i = (1, 2, 3, 4, 5, 6) keV $. (Events with $ E_{sum} \in (0, 500) keV $ are omitted as there is not enough statistics). 
+The goal of calculating $g(k)$ and its $RMS$ is to evaluate different data-cuts. In the analysis below, various energy cuts are tested. Six data-cuts are presented - the sum of electron energies $E_{sum}$ must fulfill $ E_{sum} \in (500i, 500i + \Delta E) \; \Delta E = 500 keV \; i = (1, 2, 3, 4, 5, 6) keV $. (Events with $ E_{sum} \in (0, 500) keV $ are omitted as there is not enough statistics). 
 
 First, a set of $f\_i(\theta, \phi)$ is presented.  
 
