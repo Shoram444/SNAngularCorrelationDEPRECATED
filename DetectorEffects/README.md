@@ -1,7 +1,7 @@
 Detector Effects 
 ===============	
 
-Study of Detector Effects on the angular correlation between decay ($\theta$) and escape ($\phi$) angles for the SuperNEMO experiment. $\theta$ is defined as the angle between the two emitted electrons as they are emitted in the $\beta\beta$ decay - the initial angle. $\phi$ is defined as the angle between the two electrons as they escape the source foil and enter the tracker - the final angle. The angles are obtained from the scalar products of the momentum vectors as found in the relevant G4Step in the simulation process. 
+Study of Detector Effects on the angular correlation between decay $\theta$ and escape $\phi$ angles for the SuperNEMO experiment. $\theta$ is defined as the angle between the two emitted electrons as they are emitted in the $\beta\beta$ decay - the initial angle. $\phi$ is defined as the angle between the two electrons as they escape the source foil and enter the tracker - the final angle. The angles are obtained from the scalar products of the momentum vectors as found in the relevant G4Step in the simulation process. 
 
 
 $cos(\theta) = \frac{p_1 \cdot p_2}{|p_1||p_2|}$
