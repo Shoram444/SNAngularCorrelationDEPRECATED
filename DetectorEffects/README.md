@@ -578,4 +578,12 @@ p
 
 
 
-### From the figure, it is visible that increasing the energy cut improves the corellation. 
+### From the figure, it is visible that increasing the energy cut improves the corellation. It has been shown that the $g(k)$-method can be used to evaluate the quality of data-cuts with respect to the angular correlation. 
+
+Pending tasks
+===
+
+* Check the frequency of how often electrons from region 1 hit the same OM.
+* Check for each region, how often which data-cut is failed
+* Check for absolute angle (w.r.t. the foil) 
+
