@@ -271,7 +271,7 @@ Secondly, we can look at these regions in terms of how well events generated wit
 
  1. <font color="red">An event must have two negatively charged tracks reconstructed</font>, 
  2. <font color="red">Two vertices on the source foil, within given distance from each other</font>,
- 3. <font color="green">Sum of electron energies within the range: $0~keV \leq E_{sum} \leq 3500~keV$</font>,
+ 3. <font color="green">Sum of electron energies within the range: $ 0 keV \leq E_{sum} \leq 3500 keV $ </font>,
  4. <font color="red">Two individual Optical Module hits</font>,
  5. <font color="red">Two associated Optical Module hits</font>. 
 
@@ -287,7 +287,7 @@ Lastly, there is an apparent discrepancy between the height of the *peak* of reg
 
  1. <font color="green">An event must have two negatively charged tracks reconstructed</font>, 
  2. <font color="green">Two vertices on the source foil, within given distance from each other</font>,
- 3. <font color="green">Sum of electron energies within the range: $0~keV \leq E_{sum} \leq 3500~keV$</font>,
+ 3. <font color="green">Sum of electron energies within the range: $ 0 keV \leq E_{sum} \leq 3500 keV $ </font>,
  4. <font color="green">Two individual Optical Module hits</font>,
  5. <font color="green">Two associated Optical Module hits</font>. 
 
@@ -297,7 +297,7 @@ The *dip* in the region 3 is explained in DocDB #4816. The events with $\phi$ cl
 
  1. <font color="red">An event must have two negatively charged tracks reconstructed</font>, 
  2. <font color="red">Two vertices on the source foil, within given distance from each other</font>,
- 3. <font color="green">Sum of electron energies within the range: $0~keV \leq E_{sum} \leq 3500~keV$</font>,
+ 3. <font color="green">Sum of electron energies within the range: $ 0 keV \leq E_{sum} \leq 3500 keV $ </font>,
  4. <font color="green">Two individual Optical Module hits</font>,
  5. <font color="green">Two associated Optical Module hits</font>. 
  
